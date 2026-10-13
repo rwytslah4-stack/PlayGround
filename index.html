@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>الهروب من الوحش | Monster Escape 3D — غرف + مابات</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#04060c;font-family:'Segoe UI',Tahoma,Arial,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+#game{position:fixed;inset:0}
+canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#topbar{position:absolute;top:0;right:0;left:0;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;gap:8px}
+.pill{background:rgba(8,12,22,.72);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);border-radius:14px;padding:8px 14px;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+#timer.warn{color:#ff5b5b;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+#lives{display:flex;gap:6px;align-items:center}
+.life-pip{width:26px;height:26px;clip-path:polygon(50% 0,100% 38%,81% 100%,19% 100%,0 38%);background:linear-gradient(180deg,#7dffb0,#16a34a);box-shadow:0 0 12px rgba(74,222,128,.8);transition:all .3s}
+.life-pip.lost{background:linear-gradient(180deg,#3a3f4a,#14161c);box-shadow:none;transform:scale(.85);filter:grayscale(1)}
+.life-pip.bleed{animation:pulse 1s infinite;background:linear-gradient(180deg,#ff7b7b,#b91c1c)}
+#livesLabel{font-size:11px;color:#7dffb0;font-weight:800}
+#coins{color:#ffd76a}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:15;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+#grain{position:fixed;inset:0;pointer-events:none;z-index:15;opacity:.06;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")}
+.shopGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;text-align:right}
+.shopItem{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px;font-size:12px}
+.shopItem b{font-size:13px}
+.shopItem button{margin-top:6px;width:100%;padding:8px;border-radius:10px;border:none;font-weight:900;cursor:pointer;background:#facc15;color:#111}
+.shopItem button.owned{background:#22c55e;color:#fff}
+.shopItem button.equipped{background:#2563eb;color:#fff}
+.mtypeGrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin:8px 0}
+.mtype{border:2px solid rgba(255,255,255,.15);border-radius:12px;padding:8px 4px;cursor:pointer;font-size:11px;font-weight:800}
+.mtype.sel{border-color:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.6)}
+.mtype .e{font-size:26px}
+#skillBtns{position:fixed;bottom:104px;left:14px;display:flex;flex-direction:column;gap:8px;z-index:30;pointer-events:auto}
+.sbtn{width:56px;height:56px;border-radius:14px;border:1.5px solid rgba(255,255,255,.35);background:rgba(20,26,44,.75);color:#fff;font-weight:900;font-size:11px}
+.sbtn.ready{border-color:#7dffb0;box-shadow:0 0 12px rgba(74,222,128,.6)}
+.sbtn:active{transform:scale(.92)}
+#teamStatus{display:flex;gap:6px;flex-wrap:wrap}
+.mate{background:rgba(8,12,22,.72);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:6px 10px;color:#fff;font-size:12px;font-weight:700}
+.mate.bleed{border-color:#ff3b3b;color:#ffb3b3;animation:pulse 1s infinite}
+.mate.dead{opacity:.45;filter:grayscale(1)}
+#roomPill{font-size:12px;color:#7dffb0}
+#objective{position:absolute;top:62px;right:12px;left:12px;text-align:center;color:#ffd98a;font-size:13px;font-weight:700;text-shadow:0 2px 8px #000;background:rgba(0,0,0,.45);border-radius:10px;padding:6px 10px;border:1px solid rgba(255,217,138,.25)}
+#keysBar{position:absolute;top:102px;right:12px;display:flex;gap:6px}
+.keySlot{width:42px;height:42px;border-radius:12px;background:rgba(10,14,26,.75);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.35}
+.keySlot.owned{opacity:1;border-color:#ffd76a;box-shadow:0 0 14px rgba(255,215,106,.5)}
+#handLabel{position:absolute;top:150px;right:12px;color:#fff;font-size:12px;background:rgba(0,0,0,.55);padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15)}
+#msg{position:absolute;bottom:170px;right:50%;transform:translateX(50%);color:#fff;background:rgba(10,14,26,.85);border:1px solid rgba(255,255,255,.2);padding:10px 18px;border-radius:12px;font-weight:700;font-size:14px;white-space:nowrap;opacity:0;transition:opacity .25s;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#healBar{position:absolute;bottom:220px;right:50%;transform:translateX(50%);width:220px;display:none;text-align:center;color:#7dffb0;font-weight:800;font-size:13px;text-shadow:0 2px 6px #000}
+#healTrack{height:10px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:6px;overflow:hidden;border:1px solid rgba(125,255,176,.4)}
+#healFill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#7dffb0);border-radius:99px}
+#dmg{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,0,0,.55) 100%);opacity:0;transition:opacity .15s;z-index:20}
+#bleedIcon{position:absolute;bottom:120px;right:12px;display:none;background:rgba(120,0,0,.8);color:#fff;font-weight:800;padding:8px 12px;border-radius:12px;font-size:13px;border:1px solid #ff5555;animation:pulse 1s infinite}
+#joy{position:fixed;bottom:24px;right:18px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.25);z-index:30;pointer-events:auto;touch-action:none}
+#stick{position:absolute;width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5);right:36px;top:36px}
+#btns{position:fixed;bottom:24px;left:14px;display:flex;gap:10px;z-index:30;pointer-events:auto}
+.abtn{width:68px;height:68px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);font-weight:900;font-size:13px;color:#fff;background:rgba(20,26,44,.7)}
+.abtn:active{transform:scale(.93)}
+#btnAct{background:rgba(34,197,94,.55);border-color:#7dffb0}
+#btnRun{background:rgba(234,179,8,.45)}
+#lookPad{position:fixed;top:0;bottom:0;left:0;right:0;z-index:5}
+#menu{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#141c33 0%,#04060c 70%);padding:14px}
+.card{max-width:600px;width:100%;background:rgba(12,17,32,.95);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:20px;color:#fff;text-align:center;box-shadow:0 20px 80px rgba(0,0,0,.7);max-height:94vh;overflow-y:auto}
+.card h1{font-size:25px;margin-bottom:2px;color:#ff5b5b;text-shadow:0 0 24px rgba(255,0,0,.5)}
+.card h2{font-size:13px;color:#ffd98a;margin-bottom:10px}
+.card p{font-size:13px;line-height:1.9;color:#d4d9e8;margin-bottom:8px}
+.row{display:flex;gap:8px;margin:8px 0}
+.row>*{flex:1}
+input,select{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font-weight:700;font-size:15px;text-align:center}
+.btn{padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:900;cursor:pointer;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)}
+.btn.green{background:linear-gradient(135deg,#4ade80,#22c55e);color:#08120a}
+.btn.red{background:linear-gradient(135deg,#f87171,#dc2626)}
+.btn.blue{background:linear-gradient(135deg,#60a5fa,#2563eb)}
+.btn:active{transform:scale(.97)}
+.maps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0}
+.mapCard{border:2px solid rgba(255,255,255,.15);border-radius:14px;padding:10px 6px;cursor:pointer;background:rgba(255,255,255,.05)}
+.mapCard.sel{border-color:#4ade80;box-shadow:0 0 16px rgba(74,222,128,.5);background:rgba(74,222,128,.1)}
+.mapCard .e{font-size:30px}
+.mapCard .t{font-weight:900;font-size:13px;margin-top:4px}
+.mapCard .d{font-size:11px;color:#9aa3bd}
+.seg{display:flex;gap:8px;margin:8px 0}
+.seg button{flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font-weight:800;cursor:pointer;font-size:13px}
+.seg button.sel{background:rgba(74,222,128,.2);border-color:#4ade80}
+#roomPanel{display:none;text-align:right;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px;margin-top:8px}
+#roomCode{font-size:26px;font-weight:900;letter-spacing:6px;color:#7dffb0;text-align:center}
+#plist{margin:8px 0;display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto}
+.prow{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:10px;padding:7px 10px;font-size:13px;font-weight:700}
+.prow .role{margin-right:auto;font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.25)}
+#lobbyMsg{font-size:12px;color:#9aa3bd;text-align:center;min-height:18px}
+#endScreen{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.82);padding:18px}
+#endScreen.show{display:flex}
+.nametag{pointer-events:none}
+@media (min-width:800px){#joy{right:30px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<div id="lookPad"></div>
+<div id="hud">
+  <div id="topbar">
+    <div class="pill"><div id="lives"><div class="life-pip" id="lp0"></div><div class="life-pip" id="lp1"></div><div class="life-pip" id="lp2"></div></div><span id="livesLabel">فرص النجاة 3/3</span></div>
+    <div class="pill" id="timer">⏱ 05:00</div>
+    <div class="pill" id="coins">🪙 <span id="coinN">0</span></div>
+    <div class="pill" id="roomPill" style="display:none">🔑 -----</div>
+    <div id="teamStatus"></div>
+  </div>
+  <div id="objective">🔍 ابحث عن المفتاح الأحمر</div>
+  <div id="keysBar"><div class="keySlot" id="kR">🔴</div><div class="keySlot" id="kB">🔵</div><div class="keySlot" id="kG">🟢</div><div class="keySlot" id="kH">🔨</div></div>
+  <div id="handLabel">✋ فارغ</div>
+  <div id="msg"></div>
+  <div id="healBar">💚 جارٍ العلاج... ابقَ قريباً<div id="healTrack"><div id="healFill"></div></div></div>
+  <div id="bleedIcon">🩸 نزيف! اقترب من صديق للعلاج</div>
+</div>
+<div id="dmg"></div>
+<div id="vignette"></div><div id="grain"></div>
+<div id="skillBtns">
+  <button class="sbtn" id="skillBtn" title="مهارة">⚡<br>مهارة</button>
+  <button class="sbtn" id="trapBtn" style="display:none" title="فخ">🪤<br>فخ</button>
+</div>
+<div id="joy"><div id="stick"></div></div>
+<div id="btns">
+  <button class="abtn" id="btnAct">إمساك<br>E</button>
+  <button class="abtn" id="btnRun">ركض</button>
+  <button class="abtn" id="btnLight">🔦</button>
+</div>
+<div id="menu"><div class="card">
+  <h1>👹 الهروب من الوحش</h1>
+  <h2>غرف برموز حتى 6 لاعبين • بدون سيرفر خاص • وحش بشري أو بوت • 3 مابات</h2>
+  <div class="row"><input id="nameInput" maxlength="12" placeholder="اسمك... (مثال: صقر)"></div>
+  <div class="row">
+    <button class="btn green" id="soloBtn">▶ العب لحالك</button>
+    <button class="btn blue" id="createBtn">➕ إنشاء غرفة</button>
+  </div>
+  <div class="row">
+    <input id="codeInput" maxlength="5" placeholder="رمز الغرفة (5 حروف)" style="letter-spacing:4px">
+    <button class="btn" id="joinBtn">🚪 دخول</button>
+  </div>
+  <div style="font-weight:900;font-size:13px;margin-top:6px">👹 الوحش:</div>
+  <div class="seg" id="monsterSeg">
+    <button data-m="bot" class="sel">🤖 بوت نوب (AI)</button>
+    <button data-m="human">🧍 وحش حقيقي (لاعب)</button>
+  </div>
+  <div style="font-weight:900;font-size:13px">🗺️ اختر الماب:</div>
+  <div class="maps" id="mapSel">
+    <div class="mapCard sel" data-map="village"><div class="e">🏘️</div><div class="t">قرية البيوت</div><div class="d">بيوت وشوارع</div></div>
+    <div class="mapCard" data-map="school"><div class="e">🏫</div><div class="t">المدرسة</div><div class="d">فصول وممرات</div></div>
+    <div class="mapCard" data-map="forest"><div class="e">🌲</div><div class="t">الغابة</div><div class="d">ضباب وأشجار</div></div>
+  </div>
+  <div style="font-weight:900;font-size:13px">👹 نوع وحش البوت (يتجدد كل جيم):</div>
+  <div class="mtypeGrid" id="mtypeSel">
+    <div class="mtype sel" data-mt="shadow"><div class="e">🌑</div>ظل<br><span style="color:#9aa3bd">متوازن</span></div>
+    <div class="mtype" data-mt="brute"><div class="e">🦍</div>همجي<br><span style="color:#9aa3bd">قوي بطيء</span></div>
+    <div class="mtype" data-mt="stalker"><div class="e">👻</div>مطارد<br><span style="color:#9aa3bd">سريع ضعيف</span></div>
+    <div class="mtype" data-mt="wraith"><div class="e">💀</div>شبح<br><span style="color:#9aa3bd">يختفي</span></div>
+  </div>
+  <div style="font-weight:900;font-size:13px">🛒 المتجر — 🪙 <span id="coinShop">0</span></div>
+  <div class="seg" id="shopTabs"><button data-s="surv" class="sel">🧍 مهارات الناجين</button><button data-s="mons">👹 الوحش والفخوخ</button></div>
+  <div class="shopGrid" id="shopSurv">
+    <div class="shopItem" data-item="sprint"><b>⚡ عدّاء</b><br>سرعة +12% دائمة<br><span>200 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="bandage"><b>🩹 مسعف</b><br>علاج ذاتي سريع (5ث→2.5ث)<br><span>250 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="flash"><b>💡 فلاش</b><br>صعقة تشل الوحش 3ث (Q)<br><span>300 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="shield"><b>🛡️ درع</b><br>يمتص ضربة إضافية كل جيم<br><span>350 🪙</span><button>شراء</button></div>
+  </div>
+  <div class="shopGrid" id="shopMons" style="display:none">
+    <div class="shopItem" data-item="skin_brute"><b>🦍 شكل همجي</b><br>للعب كوحش<br><span>300 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="skin_stalker"><b>👻 شكل مطارد</b><br>للعب كوحش<br><span>300 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="skin_wraith"><b>💀 شكل شبح</b><br>للعب كوحش<br><span>400 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="trap"><b>🪤 فخوخ</b><br>3 فخوخ تشل الناجين (T)<br><span>350 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="rage"><b>🔥 غضب</b><br>انفجار سرعة (R)<br><span>250 🪙</span><button>شراء</button></div>
+    <div class="shopItem" data-item="vision"><b>👁️ كشف</b><br>رؤية الناجين خلف الجدران<br><span>300 🪙</span><button>شراء</button></div>
+  </div>
+  <div id="roomPanel">
+    <div style="text-align:center;font-size:12px;color:#9aa3bd">رمز الغرفة — أعطه لأصحابك (حتى 6):</div>
+    <div id="roomCode">-----</div>
+    <div class="row">
+      <button class="btn" id="copyBtn">📋 نسخ الرمز</button>
+      <button class="btn red" id="monsterBtn">👹 أنا الوحش</button>
+    </div>
+    <div id="plist"></div>
+    <div id="lobbyMsg"></div>
+    <div class="row"><button class="btn green" id="startBtn">▶ ابدأ اللعب</button></div>
+  </div>
+  <button id="startBtnSolo" style="display:none"></button>
+  <p style="font-size:11px;color:#8b93ad">🕹️ جوال: عصا + سحب للنظر + زر إمساك | 💻 WASD + ماوس + E • بدون سيرفر: الاتصال P2P مباشر بالرمز • فوق 6 لا يدخل</p>
+</div></div>
+<div id="endScreen"><div class="card"><h1 id="endTitle"></h1><p id="endDesc"></p><button onclick="location.reload()" style="width:100%;padding:14px;border:none;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer">🔄 العب مجدداً</button></div></div>
+<script type="module">
+import * as THREE from 'three';
+/* ================= CONFIG ================= */
+const TIME_LIMIT=300, WORLD=84, MAXP=6, PREFIX='msk-esc-v1-';
+let started=false, gameOver=false, win=false;
+let mapId='village', monsterMode='bot';
+
+/* ================= NET (غرف P2P بدون سيرفر خاص) ================= */
+const Net={mode:'solo',isHost:true,peer:null,conns:[],myId:'solo',name:'',code:'',players:[],myRole:'survivor',remote:{},monsterBy:'',gotStart:false};
+const $=id=>document.getElementById(id);
+function myName(){return ($('nameInput').value||'لاعب').trim().slice(0,12);}
+function genCode(){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=A[Math.random()*A.length|0];return s;}
+function peerOK(){return typeof window.Peer!=='undefined';}
+function lobbyMsg(t){$('lobbyMsg').textContent=t||'';}
+function renderLobby(){
+  const box=$('plist');box.innerHTML='';
+  Net.players.forEach(p=>{
+    const d=document.createElement('div');d.className='prow';
+    d.innerHTML=`<span>${p.role==='monster'?'👹':'🧍'} ${p.name}</span><span class="role">${p.role==='monster'?'وحش':p.host?'مضيف':'ناجٍ'}</span>`;
+    box.appendChild(d);
+  });
+  lobbyMsg(`اللاعبون: ${Net.players.length}/${MAXP}`+(Net.players.length>=MAXP?' — الغرفة ممتلئة':''));
+  $('startBtn').style.display=Net.isHost?'block':'none';
+}
+function broadcast(o){Net.conns.forEach(c=>{try{if(c.open)c.send(o);}catch(e){}});}
+function sendHost(o){const h=Net.conns[0];if(h&&h.open)try{h.send(o);}catch(e){}}
+// إنشاء غرفة
+$('createBtn').onclick=()=>{
+  if(!peerOK()){alert('تعذر تحميل شبكة P2P — العب لحالك');return;}
+  Net.mode='room';Net.isHost=true;Net.name=myName();Net.code=genCode();Net.myRole='survivor';
+  Net.peer=new window.Peer(PREFIX+Net.code,{debug:0});
+  Net.peer.on('open',()=>{
+    Net.myId=PREFIX+Net.code;Net.players=[{id:Net.myId,name:Net.name,role:'survivor',host:true}];
+    $('roomPanel').style.display='block';$('roomCode').textContent=Net.code;
+    $('roomPill').style.display='flex';$('roomPill').textContent='🔑 '+Net.code;
+    renderLobby();lobbyMsg('شارك الرمز مع أصحابك...');
+  });
+  Net.peer.on('connection',c=>{
+    c.on('open',()=>{if(Net.players.length>=MAXP){try{c.send({t:'full'});}catch(e){}setTimeout(()=>c.close(),500);return;}});
+    c.on('data',d=>hostOnData(c,d));
+    c.on('close',()=>{Net.conns=Net.conns.filter(x=>x!==c);Net.players=Net.players.filter(p=>p.id!==c.peer);broadcast({t:'lobby',players:Net.players,monsterMode,mapId});renderLobby();});
+    Net.conns.push(c);
+  });
+  Net.peer.on('error',e=>{lobbyMsg('خطأ: '+(e.type||'')+' — جرّب رمزاً آخر');});
+};
+function hostOnData(c,d){
+  if(!d||!d.t)return;
+  if(d.t==='hello'){
+    if(Net.players.length>=MAXP){try{c.send({t:'full'});}catch(e){}return;}
+    if(!Net.players.find(p=>p.id===c.peer))Net.players.push({id:c.peer,name:(d.name||'لاعب').slice(0,12),role:'survivor',host:false});
+    // وحش واحد فقط
+    let mons=Net.players.filter(p=>p.role==='monster');
+    if(mons.length>1){const p=Net.players.find(p=>p.id===c.peer);if(p)p.role='survivor';}
+    broadcast({t:'lobby',players:Net.players,monsterMode,mapId});renderLobby();
+    try{c.send({t:'welcome',id:c.peer,players:Net.players,monsterMode,mapId});}catch(e){}
+  }else if(d.t==='role'){
+    const p=Net.players.find(p=>p.id===c.peer);
+    if(p){if(d.role==='monster'){Net.players.forEach(x=>{if(x.role==='monster')x.role='survivor';});p.role='monster';}
+      else p.role='survivor';
+      broadcast({t:'lobby',players:Net.players,monsterMode,mapId});renderLobby();}
+  }else if(d.t==='pos'){Net.remote[c.peer]=Net.remote[c.peer]||{};Object.assign(Net.remote[c.peer],{x:d.x,z:d.z,yaw:d.yaw,bleed:d.bleed,hearts:d.hearts,alive:d.alive,hand:d.hand,name:d.name});}
+  else if(d.t==='mpos'&&Net.monsterBy===c.peer){monster.pos.set(d.x,0,d.z);monster.yaw=d.yaw;}
+  else if(d.t==='act'){handleRemoteAction(d.a,c.peer);}
+}
+// دخول برمز
+$('joinBtn').onclick=()=>{
+  if(!peerOK()){alert('تعذر تحميل شبكة P2P');return;}
+  const code=($('codeInput').value||'').trim().toUpperCase();
+  if(code.length!==5){alert('اكتب رمز الغرفة (5 حروف)');return;}
+  Net.mode='room';Net.isHost=false;Net.name=myName();Net.code=code;Net.conns=[];
+  Net.peer=new window.Peer({debug:0});
+  Net.peer.on('open',id=>{
+    Net.myId=id;
+    const c=Net.peer.connect(PREFIX+code,{reliable:true});
+    Net.conns=[c];
+    c.on('open',()=>{c.send({t:'hello',name:Net.name});lobbyMsg('تم الاتصال... بانتظار المضيف');$('roomPanel').style.display='block';$('roomCode').textContent=code;$('roomPill').style.display='flex';$('roomPill').textContent='🔑 '+code;});
+    c.on('data',cliOnData);
+    c.on('close',()=>lobbyMsg('انقطع الاتصال بالمضيف'));
+  });
+  Net.peer.on('error',e=>{if(e.type==='peer-unavailable')alert('الرمز غير صحيح — لا توجد غرفة بهذا الرمز');else lobbyMsg('خطأ اتصال: '+e.type);});
+};
+function cliOnData(d){
+  if(!d||!d.t)return;
+  if(d.t==='lobby'){Net.players=d.players||[];monsterMode=d.monsterMode||monsterMode;mapId=d.mapId||mapId;if(d.mtype)buildMonster(d.mtype);syncTopSeg();renderLobby();}
+  else if(d.t==='welcome'){Net.players=d.players||[];monsterMode=d.monsterMode;mapId=d.mapId;syncTopSeg();renderLobby();}
+  else if(d.t==='full'){alert('الغرفة ممتلئة (6/6) — لا يمكنك الدخول');}
+  else if(d.t==='start'){startMultiplayer(d);}
+  else if(d.t==='snap'){applySnap(d);}
+  else if(d.t==='evt'){applyEvt(d.e);}
+}
+$('monsterBtn').onclick=()=>{
+  if(Net.mode!=='room')return;
+  if(Net.isHost){
+    Net.players.forEach(x=>{if(x.role==='monster')x.role='survivor';});
+    const me=Net.players.find(p=>p.id===Net.myId);if(me)me.role=me.role==='monster'?'survivor':'monster';
+    broadcast({t:'lobby',players:Net.players,monsterMode,mapId});renderLobby();
+  }else sendHost({t:'role',role:(Net.players.find(p=>p.id===Net.myId)?.role==='monster'?'survivor':'monster')});
+};
+$('copyBtn').onclick=()=>{try{navigator.clipboard.writeText(Net.code);}catch(e){}lobbyMsg('تم نسخ الرمز: '+Net.code);};
+// اختيار الوحش/الماب من القائمة
+document.querySelectorAll('#monsterSeg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#monsterSeg button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
+  monsterMode=b.dataset.m;if(Net.isHost&&Net.mode==='room')broadcast({t:'lobby',players:Net.players,monsterMode,mapId});
+});
+document.querySelectorAll('#mapSel .mapCard').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('#mapSel .mapCard').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');
+  mapId=c.dataset.map;if(Net.isHost&&Net.mode==='room')broadcast({t:'lobby',players:Net.players,monsterMode,mapId});
+});
+function syncTopSeg(){
+  document.querySelectorAll('#monsterSeg button').forEach(x=>x.classList.toggle('sel',x.dataset.m===monsterMode));
+  document.querySelectorAll('#mapSel .mapCard').forEach(x=>x.classList.toggle('sel',x.dataset.map===mapId));
+}
+
+/* ================= THREE SETUP ================= */
+const container=$('game');
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+container.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x05070e);scene.fog=new THREE.FogExp2(0x070b14,0.03);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,0.1,220);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+scene.add(new THREE.AmbientLight(0x2a3555,0.35));
+const moon=new THREE.DirectionalLight(0x5a76c8,0.35);moon.position.set(-20,40,-10);moon.castShadow=true;
+moon.shadow.mapSize.set(1024,1024);moon.shadow.camera.left=-50;moon.shadow.camera.right=50;moon.shadow.camera.top=50;moon.shadow.camera.bottom=-50;scene.add(moon);
+const lampLights=[];
+/* PBR */
+function canvasTex(size,fn,rep=8){const c=document.createElement('canvas');c.width=c.height=size;fn(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);t.colorSpace=THREE.SRGBColorSpace;return t;}
+const floorMap=canvasTex(512,(g,s)=>{g.fillStyle='#33363d';g.fillRect(0,0,s,s);for(let i=0;i<9000;i++){const v=40+Math.random()*45|0;g.fillStyle=`rgb(${v},${v+2},${v+6})`;g.fillRect(Math.random()*s,Math.random()*s,2,2);}g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=3;for(let i=0;i<=4;i++){g.beginPath();g.moveTo(i*s/4,0);g.lineTo(i*s/4,s);g.stroke();g.beginPath();g.moveTo(0,i*s/4);g.lineTo(s,i*s/4);g.stroke();}},10);
+const floorRough=canvasTex(256,(g,s)=>{g.fillStyle='#b0b0b0';g.fillRect(0,0,s,s);for(let i=0;i<1500;i++){const v=140+Math.random()*110|0;g.fillStyle=`rgb(${v},${v},${v})`;g.fillRect(Math.random()*s,Math.random()*s,3,3);}},10);
+floorRough.colorSpace=THREE.NoColorSpace;
+const wallMap=canvasTex(512,(g,s)=>{g.fillStyle='#4a4239';g.fillRect(0,0,s,s);const bh=s/8;for(let r=0;r<8;r++){for(let cix=0;cix<4;cix++){const off=(r%2)*s/8;const x=cix*s/4+off-s/8;const v=58+Math.random()*26;g.fillStyle=`rgb(${v+12},${v+2},${v-8})`;g.fillRect(x+3,r*bh+3,s/4-6,bh-6);}}},4);
+const grassTexC=canvasTex(128,(g,s)=>{g.clearRect(0,0,s,s);g.strokeStyle='#2f7a2e';g.lineWidth=3;for(let i=0;i<26;i++){const x=8+Math.random()*(s-16);g.beginPath();g.moveTo(x,s);g.quadraticCurveTo(x+(Math.random()*20-10),s/2,x+(Math.random()*30-15),10+Math.random()*20);g.stroke();}});
+const bloodTexC=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,4,64,64,62);gr.addColorStop(0,'rgba(160,0,0,.95)');gr.addColorStop(.6,'rgba(120,0,0,.8)');gr.addColorStop(1,'rgba(80,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);})();
+const floorMat=new THREE.MeshStandardMaterial({map:floorMap,roughnessMap:floorRough,roughness:1,metalness:.08,bumpMap:floorRough,bumpScale:.4});
+const wallMat=new THREE.MeshStandardMaterial({map:wallMap,roughness:.92,metalness:.02,bumpMap:wallMap,bumpScale:.6});
+const darkMetal=new THREE.MeshStandardMaterial({color:0x2b2f38,roughness:.45,metalness:.85});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(WORLD,WORLD),floorMat);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const outerGrass=new THREE.Mesh(new THREE.PlaneGeometry(WORLD*3,WORLD*3),new THREE.MeshStandardMaterial({color:0x14240f,roughness:1}));outerGrass.rotation.x=-Math.PI/2;outerGrass.position.y=-0.05;scene.add(outerGrass);
+
+/* ============ MAP SYSTEM (3 مابات) ============ */
+let mapGroup=null, colliders=[], doors=[], planks=[], items=[], trees=[], patrolWps=[], spawns=[], escapePos=new THREE.Vector3(-4,0,32), grassMesh=null, vanGroup=null;
+const grassUniforms={uTime:{value:0}};
+function addLamp(x,z,color=0xff9a3c){const p=new THREE.PointLight(color,18,18,1.8);p.position.set(x,3.4,z);mapGroup.add(p);lampLights.push({l:p,base:18,seed:Math.random()*10});}
+function addWall(x,z,w,d,h=4){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wallMat);m.position.set(x,h/2,z);m.castShadow=m.receiveShadow=true;mapGroup.add(m);colliders.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2});return m;}
+function addLampPost(x,z){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,3.6,8),darkMetal);pole.position.set(x,1.8,z);pole.castShadow=true;mapGroup.add(pole);const head=new THREE.Mesh(new THREE.SphereGeometry(.28,10,10),new THREE.MeshStandardMaterial({color:0xffc873,emissive:0xff9a2a,emissiveIntensity:2}));head.position.set(x,3.7,z);mapGroup.add(head);addLamp(x,z);}
+function addHouse(x,z,w=8,d=7){
+  const base=new THREE.Mesh(new THREE.BoxGeometry(w,3.4,d),new THREE.MeshStandardMaterial({map:wallMap,roughness:.9,color:0xd8c9a8}));base.position.set(x,1.7,z);base.castShadow=base.receiveShadow=true;mapGroup.add(base);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*.75,2.4,4),new THREE.MeshStandardMaterial({color:0x6b2f22,roughness:.85}));roof.position.set(x,4.6,z);roof.rotation.y=Math.PI/4;mapGroup.add(roof);
+  const win=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1),new THREE.MeshStandardMaterial({color:0xffd98a,emissive:0xffb020,emissiveIntensity:.9}));win.position.set(x,1.9,z+d/2+.02);mapGroup.add(win);
+  colliders.push({x0:x-w/2,x1:x+w/2,z0:z-d/2,z1:z+d/2});
+}
+function addDoor(x,z,colorHex,keyId,w=4){
+  const mat=new THREE.MeshStandardMaterial({color:colorHex,roughness:.5,metalness:.3,emissive:colorHex,emissiveIntensity:.15});
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(w+.8,3.8,.3),darkMetal);frame.position.set(x,1.9,z);mapGroup.add(frame);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,3.4,.5),mat);m.position.set(x,1.7,z+.08);m.castShadow=true;mapGroup.add(m);
+  const col={x0:x-w/2,x1:x+w/2,z0:z-.3,z1:z+.3,door:m};colliders.push(col);
+  doors.push({mesh:m,col,keyId,open:false,x,z,colorHex});return doors[doors.length-1];
+}
+function addPlankWall(x,z){
+  const grp=new THREE.Group();
+  for(let i=0;i<5;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(5,.5,.3),new THREE.MeshStandardMaterial({color:0x7a5230,roughness:.9}));p.position.set(0,i*.6,Math.random()*.2);p.rotation.z=(Math.random()-.5)*.15;grp.add(p);}
+  grp.position.set(x,1,z);mapGroup.add(grp);
+  const col={x0:x-2.5,x1:x+2.5,z0:z-.4,z1:z+.4,plank:true,grp};colliders.push(col);planks.push({grp,col,done:false});
+}
+function addTree(x,z,big=false){
+  const g=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.25,.4,2.4,7),new THREE.MeshStandardMaterial({color:0x4a3320,roughness:.95}));trunk.position.y=1.2;trunk.castShadow=true;g.add(trunk);
+  const folMat=new THREE.MeshStandardMaterial({color:big?0x144a1e:0x1d4a22,roughness:.9});
+  for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.ConeGeometry((big?2.2:1.6)-i*.35,1.6,8),folMat);c.position.y=2.6+i*1;c.castShadow=true;g.add(c);}
+  g.position.set(x,0,z);g.rotation.y=Math.random()*6;mapGroup.add(g);
+  colliders.push({x0:x-.4,x1:x+.4,z0:z-.4,z1:z+.4});trees.push({g,shake:0,baseRotY:g.rotation.y});
+}
+function addItemMesh(kind,x,z,color){
+  let mesh=kind==='H'?makeHammer():makeKeyMesh(color);
+  mesh.position.set(x,1,z);mesh.castShadow=true;mapGroup.add(mesh);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(.5,.65,24),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(x,.04,z);mapGroup.add(ring);
+  const light=new THREE.PointLight(color,8,7,1.8);light.position.set(x,1.5,z);mapGroup.add(light);
+  items.push({kind,mesh,ring,light,x,z,taken:false,phase:Math.random()*6});
+}
+function addVan(x,z){
+  escapePos.set(x,0,z);
+  const van=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2.6,1.6,5),new THREE.MeshStandardMaterial({color:0xc8a028,roughness:.4,metalness:.4}));body.position.y=1.2;body.castShadow=true;van.add(body);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(2.4,1,2.6),new THREE.MeshStandardMaterial({color:0x303848,roughness:.3,metalness:.5}));top.position.set(0,2.2,-.4);van.add(top);
+  for(const [wx,wz] of [[-1.3,1.6],[1.3,1.6],[-1.3,-1.6],[1.3,-1.6]]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.4,12),new THREE.MeshStandardMaterial({color:0x111111,roughness:.9}));w.rotation.z=Math.PI/2;w.position.set(wx,.5,wz);van.add(w);}
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,6,20,1,true),new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:.14,side:THREE.DoubleSide}));beam.position.y=3;van.add(beam);
+  van.position.copy(escapePos);mapGroup.add(van);vanGroup=van;
+  const el=new THREE.PointLight(0x4ade80,20,16,1.8);el.position.set(x,3,z);mapGroup.add(el);
+}
+function clearMap(){
+  if(mapGroup)scene.remove(mapGroup);
+  mapGroup=new THREE.Group();scene.add(mapGroup);
+  colliders=[];doors=[];planks=[];items=[];trees=[];lampLights.length=0;patrolWps=[];spawns=[];
+  bloodGroup.clear();bloodPool.length=0;
+}
+function baseBounds(){
+  addWall(0,-WORLD/2,WORLD,1.5,6);addWall(0,WORLD/2,WORLD,1.5,6);addWall(-WORLD/2,0,1.5,WORLD,6);addWall(WORLD/2,0,1.5,WORLD,6);
+}
+function buildGrass(n){
+  if(grassMesh){scene.remove(grassMesh);}
+  const gGeo=new THREE.PlaneGeometry(.7,.9);gGeo.translate(0,.45,0);
+  const gMat=new THREE.MeshStandardMaterial({map:grassTexC,transparent:true,alphaTest:.4,side:THREE.DoubleSide,roughness:1,color:0x9fbf7a});
+  gMat.onBeforeCompile=(sh)=>{sh.uniforms.uTime=grassUniforms.uTime;sh.vertexShader='uniform float uTime;\n'+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>\nfloat sway=sin(uTime*2.0+float(gl_InstanceID)*1.7)*0.18*position.y;\ntransformed.x+=sway;`)};
+  grassMesh=new THREE.InstancedMesh(gGeo,gMat,n);
+  const d=new THREE.Object3D();let placed=0,guard=0;
+  while(placed<n&&guard++<30000){const x=(Math.random()-.5)*(WORLD-4),z=(Math.random()-.5)*(WORLD-4);
+    if(colliders.some(c=>x>c.x0-1&&x<c.x1+1&&z>c.z0-1&&z<c.z1+1))continue;
+    d.position.set(x,0,z);d.rotation.y=Math.random()*Math.PI;const s=.7+Math.random()*.9;d.scale.set(s,s,s);d.updateMatrix();grassMesh.setMatrixAt(placed++,d.matrix);}
+  grassMesh.instanceMatrix.needsUpdate=true;scene.add(grassMesh);
+}
+function buildMap(id){
+  clearMap();mapId=id;
+  if(id==='forest'){scene.fog.density=0.045;outerGrass.material.color.set(0x0e2010);}
+  else if(id==='school'){scene.fog.density=0.026;outerGrass.material.color.set(0x182012);}
+  else{scene.fog.density=0.03;outerGrass.material.color.set(0x14240f);}
+  baseBounds();
+  if(id==='village'){
+    // 🏘️ قرية البيوت: بيوت + شوارع + جدران مناطق
+    addHouse(-24,-22);addHouse(-6,-24);addHouse(22,-22);addHouse(-26,4);addHouse(26,6);addHouse(20,28);
+    addWall(-10,-8,44,1.2);addWall(24,-8,16,1.2);addWall(8,-8,4,1.2,2.6);
+    addWall(-8,12,44,1.2);addWall(26,12,14,1.2);addWall(10,12,4,1.2,2.6);
+    addWall(14,-8,1.2,20);addWall(14,8,1.2,8);addWall(-20,-8,1.2,22);addWall(-24,2,14,1.2);addWall(24,2,18,1.2);addWall(-4,22,30,1.2);
+    addDoor(8,-8,0xd53737,'R');addDoor(10,12,0x2f6fe4,'B');addDoor(14,2,0x2fbf4f,'G');addPlankWall(-4,22);
+    addItemMesh('R',-26,-18,0xff4040);addItemMesh('B',22,-20,0x3b82f6);addItemMesh('G',28,2,0x39e75f);addItemMesh('H',-30,26,0xffb020);
+    addLampPost(-14,-14);addLampPost(0,-14);addLampPost(-16,2);addLampPost(22,16);addLampPost(0,30);addLampPost(-28,20);
+    [[-32,-32],[32,-32],[-34,16],[34,-12],[-14,32],[10,32]].forEach(([x,z])=>addTree(x,z));
+    patrolWps.push(new THREE.Vector3(-18,0,-18),new THREE.Vector3(18,0,-18),new THREE.Vector3(20,0,8),new THREE.Vector3(-18,0,6),new THREE.Vector3(0,0,26));
+    addVan(-4,32);
+    spawns=[new THREE.Vector3(0,0,-32),new THREE.Vector3(-3,0,-32),new THREE.Vector3(3,0,-32),new THREE.Vector3(-6,0,-32),new THREE.Vector3(6,0,-32),new THREE.Vector3(0,0,-28)];
+  }else if(id==='school'){
+    // 🏫 المدرسة: فصول وممرات
+    addWall(0,-20,60,1.2);addWall(0,0,60,1.2);addWall(0,20,60,1.2);
+    for(let x=-24;x<=24;x+=12){addWall(x,-10,1.2,20);addWall(x,10,1.2,20);}
+    addWall(-30,-10,1.2,52);addWall(30,-10,1.2,52);
+    addDoor(-6,-20,0xd53737,'R');addDoor(6,0,0x2f6fe4,'B');addDoor(-6,20,0x2fbf4f,'G');addPlankWall(12,20);
+    addItemMesh('R',-26,-28,0xff4040);addItemMesh('B',26,-8,0x3b82f6);addItemMesh('G',-26,10,0x39e75f);addItemMesh('H',26,28,0xffb020);
+    addLampPost(-18,-14);addLampPost(0,-14);addLampPost(18,-14);addLampPost(-18,10);addLampPost(18,10);addLampPost(0,28);
+    [[-36,-30],[36,-30],[-36,30],[36,30]].forEach(([x,z])=>addTree(x,z));
+    patrolWps.push(new THREE.Vector3(-24,0,-14),new THREE.Vector3(24,0,-14),new THREE.Vector3(24,0,10),new THREE.Vector3(-24,0,10),new THREE.Vector3(12,0,28));
+    addVan(12,32);
+    spawns=[new THREE.Vector3(0,0,-32),new THREE.Vector3(-3,0,-32),new THREE.Vector3(3,0,-32),new THREE.Vector3(-6,0,-32),new THREE.Vector3(6,0,-32),new THREE.Vector3(0,0,-28)];
+  }else{
+    // 🌲 الغابة: أسوار خشبية + أشجار كثيفة + ضباب
+    for(let i=-30;i<=30;i+=10){addWall(i,-14,7,1,2.2);addWall(i,14,7,1,2.2);}
+    addWall(-10,-14,1,28,2.2);addWall(10,0,1,28,2.2);
+    addDoor(-10,-14+8,0xd53737,'R');addDoor(10,0,0x2f6fe4,'B');addDoor(0,14,0x2fbf4f,'G');addPlankWall(0,24);
+    addItemMesh('R',-28,-24,0xff4040);addItemMesh('B',28,-24,0x3b82f6);addItemMesh('G',28,6,0x39e75f);addItemMesh('H',-28,20,0xffb020);
+    addLampPost(-12,-20);addLampPost(12,-20);addLampPost(0,0);addLampPost(-12,18);addLampPost(12,18);
+    for(let i=0;i<34;i++){const x=(Math.random()-.5)*74,z=(Math.random()-.5)*74;if(Math.hypot(x,z+30)<8)continue;let bad=false;for(const c of colliders){if(x>c.x0-1&&x<c.x1+1&&z>c.z0-1&&z<c.z1+1){bad=true;break;}}if(!bad)addTree(x,z,true);}
+    patrolWps.push(new THREE.Vector3(-20,0,-20),new THREE.Vector3(20,0,-20),new THREE.Vector3(20,0,16),new THREE.Vector3(-20,0,16),new THREE.Vector3(0,0,28));
+    addVan(0,33);
+    spawns=[new THREE.Vector3(0,0,-34),new THREE.Vector3(-3,0,-34),new THREE.Vector3(3,0,-34),new THREE.Vector3(-6,0,-34),new THREE.Vector3(6,0,-34),new THREE.Vector3(0,0,-30)];
+  }
+  // صناديق
+  for(const [x,z] of [[-18,-24],[12,-22],[-26,-2],[24,18],[6,28]]){
+    let bad=colliders.some(c=>x>c.x0-1&&x<c.x1+1&&z>c.z0-1&&z<c.z1+1);if(bad)continue;
+    const box=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x5a4632,roughness:.9}));box.position.set(x,.5,z);box.castShadow=box.receiveShadow=true;mapGroup.add(box);
+    colliders.push({x0:x-.5,x1:x+.5,z0:z-.5,z1:z+.5});
+  }
+  buildGrass(id==='forest'?2600:1800);
+}
+
+/* ============ CHARACTERS (بشر بملامح كاملة) ============ */
+const HAIRS=[0x1a1a1a,0x4a2f1a,0x777777,0x0a0a0a,0x6b3a1f];
+function makeHuman(color,hairC){
+  const g=new THREE.Group();
+  const skin=new THREE.MeshStandardMaterial({color:0xe8b98a,roughness:.55});
+  const cloth=new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.05});
+  const pants=new THREE.MeshStandardMaterial({color:0x232838,roughness:.8});
+  hairC=hairC??HAIRS[Math.random()*HAIRS.length|0];
+  const hairM=new THREE.MeshStandardMaterial({color:hairC,roughness:.9});
+  // جذع
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.62,4,10),cloth);body.position.y=1.18;body.castShadow=true;g.add(body);
+  // أرجل + أحذية
+  const legL=new THREE.Group(),legR=new THREE.Group();
+  for(const [grp,sx] of [[legL,-1],[legR,1]]){
+    const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.5,3,8),pants);leg.position.y=-.35;leg.castShadow=true;grp.add(leg);
+    const shoe=new THREE.Mesh(new THREE.BoxGeometry(.2,.12,.32),new THREE.MeshStandardMaterial({color:0x111111,roughness:.6}));shoe.position.set(0,-.68,.05);grp.add(shoe);
+    grp.position.set(sx*.17,1.0,0);g.add(grp);
+  }
+  // أذرع + أيدي (كفوف)
+  const armL=new THREE.Group(),armR=new THREE.Group();
+  for(const [grp,sx] of [[armL,-1],[armR,1]]){
+    const a=new THREE.Mesh(new THREE.CapsuleGeometry(.09,.44,3,8),cloth);a.position.y=-.3;a.castShadow=true;grp.add(a);
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(.1,10,10),skin);hand.position.y=-.58;grp.add(hand);
+    grp.position.set(sx*.46,1.62,0);g.add(grp);
+  }
+  const handAnchor=new THREE.Group();handAnchor.position.set(.5,1.05,.3);g.add(handAnchor);
+  // رأس + ملامح: عيون / أنف / آذان / شعر / فم
+  const headG=new THREE.Group();headG.position.y=2.12;g.add(headG);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.3,18,18),skin);head.castShadow=true;headG.add(head);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(.315,18,14,0,Math.PI*2,0,Math.PI*.55),hairM);hair.position.y=.04;headG.add(hair);
+  const hairBack=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,.2),hairM);hairBack.position.set(0,.1,-.24);headG.add(hairBack);
+  const eyeW=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.25});
+  const pupM=new THREE.MeshStandardMaterial({color:0x141414,roughness:.2});
+  for(const s of [-1,1]){
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.062,10,10),eyeW);eye.position.set(s*.115,.03,.26);headG.add(eye);
+    const pup=new THREE.Mesh(new THREE.SphereGeometry(.03,8,8),pupM);pup.position.set(s*.115,.03,.315);headG.add(pup);
+    const ear=new THREE.Mesh(new THREE.SphereGeometry(.07,8,8),skin);ear.position.set(s*.3,0,0);ear.scale.set(.6,1,.8);headG.add(ear);
+  }
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(.045,.1,8),new THREE.MeshStandardMaterial({color:0xd8a075,roughness:.6}));nose.position.set(0,-.05,.3);nose.rotation.x=Math.PI/2;headG.add(nose);
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(.12,.025,.02),new THREE.MeshStandardMaterial({color:0x8a3a3a}));mouth.position.set(0,-.14,.28);headG.add(mouth);
+  const spot=new THREE.SpotLight(0xfff0c4,60,26,0.55,0.45,1.4);spot.position.set(0,2.2,.2);spot.castShadow=true;spot.shadow.mapSize.set(512,512);
+  g.add(spot);const tgt=new THREE.Object3D();tgt.position.set(0,1,-6);g.add(tgt);spot.target=tgt;
+  // مخروط ضوء مرئي (Arena style)
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(2.2,7,18,1,true),new THREE.MeshBasicMaterial({color:0xfff0c4,transparent:true,opacity:.05,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  cone.position.set(0,1.4,-3.4);cone.rotation.x=-Math.PI/2-.12;g.add(cone);
+  scene.add(g);
+  return {g,handAnchor,spot,armL,armR,legL,legR,headG,anim:Math.random()*10,cone};
+}
+function animHuman(ch,t,moving){
+  const s=moving?Math.sin(t*10)*.55:Math.sin(t*2)*.06;
+  if(ch.armL){ch.armL.rotation.x=moving?s:-s*.3;ch.armR.rotation.x=moving?-s:s*.3;}
+  if(ch.legL){ch.legL.rotation.x=moving?-s:s*.2;ch.legR.rotation.x=moving?s:-s*.2;}
+}
+function makeNameSprite(name,color='#fff'){
+  const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');
+  g.fillStyle='rgba(0,0,0,.55)';g.beginPath();g.roundRect(28,8,200,44,12);g.fill();
+  g.fillStyle=color;g.font='bold 26px Arial';g.textAlign='center';g.fillText(name.slice(0,12),128,39);
+  const t=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false}));s.scale.set(2.4,.6,1);s.position.y=2.9;return s;
+}
+function makeKeyMesh(color){const grp=new THREE.Group();const mat=new THREE.MeshStandardMaterial({color,roughness:.3,metalness:.8,emissive:color,emissiveIntensity:.35});const ring=new THREE.Mesh(new THREE.TorusGeometry(.16,.045,8,18),mat);grp.add(ring);const stem=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.34,8),mat);stem.position.y=-.26;grp.add(stem);for(let i=0;i<2;i++){const t=new THREE.Mesh(new THREE.BoxGeometry(.1,.04,.05),mat);t.position.set(.06,-.2-i*.09,0);grp.add(t);}return grp;}
+function makeHammer(){const grp=new THREE.Group();const wood=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.6,8),new THREE.MeshStandardMaterial({color:0x8a5a30,roughness:.8}));grp.add(wood);const iron=new THREE.Mesh(new THREE.BoxGeometry(.34,.16,.14),new THREE.MeshStandardMaterial({color:0x3a3f4a,roughness:.35,metalness:.9}));iron.position.y=.32;grp.add(iron);return grp;}
+const PCOLORS=[0x2fbf71,0x3b82f6,0xe8799a,0xfacc15,0xc084fc,0x22d3ee];
+const player={...makeHuman(PCOLORS[0]),pos:new THREE.Vector3(0,0,-30),yaw:Math.PI,hearts:3,bleed:false,alive:true,has:{R:false,B:false,G:false,H:false},handItem:null,handKind:'',bloodT:0,name:'أنت'};
+player.tag=makeNameSprite('أنت','#4ade80');player.g.add(player.tag);
+const bots=[]; // تمت إزالة البوتات المسماة — لعب فردي وحده أو بشر حقيقيون فقط
+function attachHand(ch,kind){
+  if(ch.handItem){ch.handAnchor.remove(ch.handItem);ch.handItem=null;ch.handKind='';}
+  let m=null;if(kind==='R')m=makeKeyMesh(0xff4040);if(kind==='B')m=makeKeyMesh(0x3b82f6);if(kind==='G')m=makeKeyMesh(0x39e75f);if(kind==='H')m=makeHammer();
+  if(m){m.scale.setScalar(.9);m.rotation.z=-.4;ch.handAnchor.add(m);ch.handItem=m;ch.handKind=kind;}
+}
+/* remote avatars (حتى 5 آخرين) */
+const remoteAvatars={};
+function getRemote(id,name,color){
+  if(remoteAvatars[id])return remoteAvatars[id];
+  const av={...makeHuman(color),pos:new THREE.Vector3(0,0,-30),yaw:0,hearts:3,bleed:false,alive:true,name,handKind:'',bloodT:0};
+  av.tag=makeNameSprite(name);av.g.add(av.tag);remoteAvatars[id]=av;return av;
+}
+function removeRemote(id){if(remoteAvatars[id]){scene.remove(remoteAvatars[id].g);delete remoteAvatars[id];}}
+/* أنواع الوحوش (تتجدد) + أشكال قابلة للشراء */
+const MTYPES={
+  shadow:{name:'ظل',icon:'🌑',skin:0x0c0c12,eye:0xff2222,speed:5.1,scale:1,glow:10,desc:'متوازن'},
+  brute:{name:'همجي',icon:'🦍',skin:0x3a4a2f,eye:0xff8800,speed:4.5,scale:1.28,glow:12,desc:'قوي بطيء'},
+  stalker:{name:'مطارد',icon:'👻',skin:0xcfcfd8,eye:0x00e5ff,speed:5.8,scale:.92,glow:8,desc:'سريع ضعيف'},
+  wraith:{name:'شبح',icon:'💀',skin:0x1a2a4a,eye:0xb44dff,speed:5.3,scale:1.05,glow:14,ghost:true,desc:'يختفي'},
+};
+let monsterType='shadow';
+const monster={pos:new THREE.Vector3(0,0,20),yaw:0,speed:4.4,cool:0,state:'patrol',wpI:0,stun:0,invis:0,rage:0};
+let mGroup=new THREE.Group();let mParts={};
+function buildMonster(type){
+  monsterType=type;const T=MTYPES[type];
+  scene.remove(mGroup);
+  mGroup=new THREE.Group();mParts={};
+  const skin=new THREE.MeshStandardMaterial({color:T.skin,roughness:.8,transparent:!!T.ghost,opacity:T.ghost?.82:1});
+  const belly=new THREE.Mesh(new THREE.CapsuleGeometry(.55*T.scale,1.5*T.scale,4,12),skin);belly.position.y=1.5*T.scale;belly.castShadow=true;mGroup.add(belly);mParts.body=belly;
+  // صدر عضلي + أشواك للهمجي
+  if(type==='brute'){for(let i=0;i<4;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(.12,.5,6),skin);sp.position.set((i-1.5)*.3,2.4*T.scale,-.4);sp.rotation.x=-.6;mGroup.add(sp);} }
+  const h=new THREE.Mesh(new THREE.SphereGeometry(.42*T.scale,14,14),skin);h.position.y=2.9*T.scale;h.scale.set(1,1.25,1);mGroup.add(h);mParts.head=h;
+  // فك + أنياب
+  const jaw=new THREE.Mesh(new THREE.BoxGeometry(.4*T.scale,.14,.3),new THREE.MeshStandardMaterial({color:0x0a0a0a,roughness:.9}));jaw.position.set(0,2.62*T.scale,.28);mGroup.add(jaw);
+  for(const s of [-1,1]){const fang=new THREE.Mesh(new THREE.ConeGeometry(.045,.18,6),new THREE.MeshStandardMaterial({color:0xffffff}));fang.position.set(s*.12,2.72*T.scale,.38);fang.rotation.x=Math.PI;mGroup.add(fang);}
+  const eMat=new THREE.MeshStandardMaterial({color:T.eye,emissive:T.eye,emissiveIntensity:5});
+  for(const s of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.1*T.scale,10,10),eMat);e.position.set(s*.18,3.02*T.scale,.32);mGroup.add(e);}
+  // أذرع طويلة بمخالب
+  mParts.arms=[];
+  for(const s of [-1,1]){
+    const arm=new THREE.Group();
+    const a=new THREE.Mesh(new THREE.CapsuleGeometry(.14*T.scale,.9*T.scale,3,8),skin);a.position.y=-.5;arm.add(a);
+    for(let f=0;f<3;f++){const cl=new THREE.Mesh(new THREE.ConeGeometry(.05,.4,6),new THREE.MeshStandardMaterial({color:0xdddddd,roughness:.4}));cl.position.set((f-1)*.1,-1.1,.05);cl.rotation.x=Math.PI;arm.add(cl);}
+    arm.position.set(s*.75*T.scale,2.1*T.scale,0);mGroup.add(arm);mParts.arms.push(arm);
+  }
+  // أرجل وحشية
+  mParts.legs=[];
+  for(const s of [-1,1]){const leg=new THREE.Group();const l=new THREE.Mesh(new THREE.CapsuleGeometry(.16*T.scale,.7,3,8),skin);l.position.y=-.4;leg.add(l);leg.position.set(s*.28,1.0,0);mGroup.add(leg);mParts.legs.push(leg);}
+  const ml=new THREE.PointLight(T.eye,T.glow,10,1.8);ml.position.set(0,3,0);mGroup.add(ml);
+  const tag=makeNameSprite(T.icon+' '+T.name,'#ff5b5b');tag.position.y=3.7*T.scale;mGroup.add(tag);
+  monster.speed=T.speed;
+  scene.add(mGroup);
+}
+buildMonster('shadow');
+/* blood */
+const bloodPool=[];const bloodGroup=new THREE.Group();scene.add(bloodGroup);
+function dropBlood(x,z){const m=new THREE.Mesh(new THREE.PlaneGeometry(.7+Math.random()*.5,.7+Math.random()*.5),new THREE.MeshBasicMaterial({map:bloodTexC,transparent:true,opacity:.9,depthWrite:false}));m.rotation.x=-Math.PI/2;m.rotation.z=Math.random()*6;m.position.set(x+(Math.random()-.5)*.4,.02+Math.random()*.01,z+(Math.random()-.5)*.4);bloodGroup.add(m);bloodPool.push({m,life:90});if(bloodPool.length>220){const o=bloodPool.shift();bloodGroup.remove(o.m);}}
+
+/* ============ COLLISION ============ */
+function collide(pos,r=.55){
+  for(const c of colliders){if(c.door&&c.door.open)continue;if(pos.x>c.x0-r&&pos.x<c.x1+r&&pos.z>c.z0-r&&pos.z<c.z1+r){const dx1=pos.x-(c.x0-r),dx2=(c.x1+r)-pos.x,dz1=pos.z-(c.z0-r),dz2=(c.z1+r)-pos.z;const m=Math.min(dx1,dx2,dz1,dz2);if(m===dx1)pos.x=c.x0-r;else if(m===dx2)pos.x=c.x1+r;else if(m===dz1)pos.z=c.z0-r;else pos.z=c.z1+r;}}
+  pos.x=Math.max(-WORLD/2+1,Math.min(WORLD/2-1,pos.x));pos.z=Math.max(-WORLD/2+1,Math.min(WORLD/2-1,pos.z));
+}
+function losBlocked(a,b){for(let t=0;t<=1;t+=.1){const x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;for(const c of colliders){if(c.door&&c.door.open)continue;if(x>c.x0&&x<c.x1&&z>c.z0&&z<c.z1)return true;}}return false;}
+
+/* ============ INPUT ============ */
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')doAction();if(e.code==='KeyF')toggleLight();if(e.code==='KeyQ')useSkill();if(e.code==='KeyT'&&Net.myRole==='monster')placeTrap();if(e.code==='KeyR'&&Net.myRole==='monster'&&Econ.has('rage')){monster.rage=4;showMsg('🔥 غضب الوحش! سرعة خارقة');}});addEventListener('keyup',e=>{keys[e.code]=false;});
+$('skillBtn').onclick=()=>{if(Net.myRole==='monster')monsterAttack();else useSkill();};
+$('trapBtn').onclick=()=>placeTrap();
+// غبار عائم (Arena-like atmosphere)
+let dust=null;
+function makeDust(){const n=400,pos=new Float32Array(n*3);for(let i=0;i<n;i++){pos[i*3]=(Math.random()-.5)*80;pos[i*3+1]=Math.random()*6;pos[i*3+2]=(Math.random()-.5)*80;}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));dust=new THREE.Points(g,new THREE.PointsMaterial({color:0xffd98a,size:.08,transparent:true,opacity:.5}));scene.add(dust);}
+makeDust();
+renderer.toneMappingExposure=1.3;
+let joyVec={x:0,y:0},sprintTouch=false,lightOn=true;
+const joy=$('joy'),stick=$('stick');let joyId=null;
+function joyMove(t){const r=joy.getBoundingClientRect();let dx=t.clientX-(r.left+r.width/2),dy=t.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy),mx=44;if(m>mx){dx*=mx/m;dy*=mx/m;}stick.style.transform=`translate(${dx}px,${dy}px)`;joyVec={x:dx/mx,y:dy/mx};}
+joy.addEventListener('touchstart',e=>{joyId=e.changedTouches[0].identifier;joyMove(e.changedTouches[0]);e.preventDefault();},{passive:false});
+addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(t.identifier===joyId)joyMove(t);},{passive:false});
+addEventListener('touchend',e=>{for(const t of e.changedTouches)if(t.identifier===joyId){joyId=null;joyVec={x:0,y:0};stick.style.transform='';}});
+let yaw=Math.PI,pitch=-.32,lookId=null,lx=0,ly=0;
+const lookPad=$('lookPad');
+lookPad.addEventListener('touchstart',e=>{for(const t of e.changedTouches){if(t.clientX<170&&t.clientY>innerHeight-190)continue;if(lookId===null){lookId=t.identifier;lx=t.clientX;ly=t.clientY;}}},{passive:true});
+addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(t.identifier===lookId){yaw-=(t.clientX-lx)*.006;pitch-=(t.clientY-ly)*.005;pitch=Math.max(-1.1,Math.min(.25,pitch));lx=t.clientX;ly=t.clientY;}},{passive:true});
+addEventListener('touchend',e=>{for(const t of e.changedTouches)if(t.identifier===lookId)lookId=null;});
+let mouseDown=false;addEventListener('mousedown',()=>{if(started)mouseDown=true;});addEventListener('mouseup',()=>mouseDown=false);
+addEventListener('mousemove',e=>{if(mouseDown&&started){yaw-=e.movementX*.004;pitch-=e.movementY*.003;pitch=Math.max(-1.1,Math.min(.25,pitch));}});
+$('btnAct').addEventListener('touchstart',e=>{e.preventDefault();doAction();},{passive:false});
+$('btnAct').addEventListener('click',()=>doAction());
+$('btnRun').addEventListener('touchstart',e=>{e.preventDefault();sprintTouch=!sprintTouch;e.target.style.background=sprintTouch?'rgba(34,197,94,.6)':'rgba(234,179,8,.45)';},{passive:false});
+$('btnLight').addEventListener('touchstart',e=>{e.preventDefault();toggleLight();},{passive:false});
+$('btnLight').addEventListener('click',()=>toggleLight());
+function toggleLight(){lightOn=!lightOn;showMsg(lightOn?'🔦 المصباح يعمل':'🌑 المصباح مطفأ — ستتخفى أكثر');}
+
+/* ============ ECONOMY + SHOP (عملات ومهارات وفخوخ) ============ */
+const Econ={
+  get coins(){return +(localStorage.getItem('me_coins')||120);},
+  set coins(v){localStorage.setItem('me_coins',Math.max(0,v|0));syncCoins();},
+  owns(){try{return JSON.parse(localStorage.getItem('me_owns')||'[]');}catch(_){return[];}},
+  has(id){return this.owns().includes(id);},
+  buy(id,price){if(this.has(id))return true;if(this.coins<price)return false;this.coins=this.coins-price;const o=this.owns();o.push(id);localStorage.setItem('me_owns',JSON.stringify(o));return true;},
+  equip(id){localStorage.setItem('me_equip_'+id.split('_')[0],'1');},
+};
+let loadout={survSkill:localStorage.getItem('me_load_surv')||'',monsSkin:localStorage.getItem('me_load_skin')||'shadow'};
+const PRICES={sprint:200,bandage:250,flash:300,shield:350,skin_brute:300,skin_stalker:300,skin_wraith:400,trap:350,rage:250,vision:300};
+function syncCoins(){const n=Econ.coins;$('coinN').textContent=n;const s=$('coinShop');if(s)s.textContent=n;}
+function refreshShop(){
+  document.querySelectorAll('#shopSurv .shopItem').forEach(el=>{
+    const id=el.dataset.item,b=el.querySelector('button');
+    if(Econ.has(id)){b.textContent=(loadout.survSkill===id?'✔ مجهز':'تجهيز');b.className=id?'':'';
+      b.classList.add(loadout.survSkill===id?'equipped':'owned');}
+    else{b.textContent=`شراء ${PRICES[id]} 🪙`;b.className='';}
+    b.onclick=()=>{
+      if(!Econ.has(id)){if(!Econ.buy(id,PRICES[id])){showMsg('🪙 عملاتك لا تكفي! اجمع مفاتيح واهرب لتربح');return;}showMsg('✅ تم الشراء!');}
+      loadout.survSkill=(loadout.survSkill===id?'':id);localStorage.setItem('me_load_surv',loadout.survSkill);refreshShop();refreshSkillBtn();
+    };
+  });
+  document.querySelectorAll('#shopMons .shopItem').forEach(el=>{
+    const id=el.dataset.item,b=el.querySelector('button');
+    const owned=id.startsWith('skin_')?(id==='skin_shadow'||Econ.has(id)):(Econ.has(id));
+    if(id.startsWith('skin_')){const sk=id.replace('skin_','');b.textContent=(loadout.monsSkin===sk?'✔ الشكل الحالي':'اختيار');}
+    else b.textContent=Econ.has(id)?'✔ مملوك':'شراء '+PRICES[id]+' 🪙';
+    b.onclick=()=>{
+      if(id.startsWith('skin_')){const sk=id.replace('skin_','');
+        if(sk!=='shadow'&&!Econ.has(id)){if(!Econ.buy(id,PRICES[id])){showMsg('🪙 عملاتك لا تكفي!');return;}}
+        loadout.monsSkin=sk;localStorage.setItem('me_load_skin',sk);if(Net.myRole==='monster')buildMonster(sk);showMsg('👹 شكل الوحش: '+MTYPES[sk].name);refreshShop();return;}
+      if(!Econ.has(id)){if(!Econ.buy(id,PRICES[id])){showMsg('🪙 عملاتك لا تكفي!');return;}showMsg('✅ تم الشراء!');}
+      refreshShop();refreshSkillBtn();
+    };
+  });
+  syncCoins();
+}
+document.querySelectorAll('#shopTabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#shopTabs button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
+  const s=b.dataset.s;$('shopSurv').style.display=s==='surv'?'grid':'none';$('shopMons').style.display=s==='mons'?'grid':'none';
+});
+document.querySelectorAll('#mtypeSel .mtype').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('#mtypeSel .mtype').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');
+  buildMonster(c.dataset.mt);
+  if(Net.isHost&&Net.mode==='room')broadcast({t:'lobby',players:Net.players,monsterMode,mapId,mtype:c.dataset.mt});
+});
+function earn(n){Econ.coins=Econ.coins+n;}
+// فخوخ الوحش
+const traps=[];
+function placeTrap(){
+  if(!Econ.has('trap')){showMsg('🪤 اشترِ الفخوخ من المتجر أولاً');return;}
+  const owned=traps.filter(t=>t.mine).length;
+  if(owned>=3){showMsg('🪤 حدك 3 فخوخ!');return;}
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.45,.5,.12,12),new THREE.MeshStandardMaterial({color:0x333333,metalness:.8,roughness:.4}));g.add(base);
+  for(const s of [-1,1]){const jaw=new THREE.Mesh(new THREE.TorusGeometry(.3,.05,8,14,Math.PI),new THREE.MeshStandardMaterial({color:0x999999,metalness:.9,roughness:.3}));jaw.position.y=.1;jaw.rotation.z=s>0?0:Math.PI;g.add(jaw);}
+  g.position.set(monster.pos.x,0.06,monster.pos.z);scene.add(g);
+  traps.push({g,x:monster.pos.x,z:monster.pos.z,mine:true,cd:0});
+  showMsg('🪤 نُصب الفخ!');netSendEvt({k:'trap',x:monster.pos.x,z:monster.pos.z});
+}
+function addRemoteTrap(x,z){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.45,.5,.12,12),new THREE.MeshStandardMaterial({color:0x333333,metalness:.8,roughness:.4}));g.add(base);
+  g.position.set(x,0.06,z);scene.add(g);traps.push({g,x,z,mine:false,cd:0});
+}
+// مهارة الناجي
+let skillCD=0,shieldUsed=false,flashCD=0;
+function useSkill(){
+  const s=loadout.survSkill;
+  if(!s){showMsg('⚡ جهّز مهارة من المتجر أولاً');return;}
+  if(skillCD>0){showMsg('⏳ المهارة تشحن...');return;}
+  if(s==='flash'){
+    if(monster.pos.distanceTo(player.pos)>12){showMsg('💡 الوحش بعيد عن الفلاش');return;}
+    monster.stun=3;skillCD=25;showMsg('💡 صعقت الوحش 3 ثوانٍ! اهرب!');earn(10);
+  }else if(s==='sprint'&&false){}
+  else showMsg('⚡ المهارة السلبية تعمل تلقائياً (سرعة/علاج/درع)');
+  refreshSkillBtn();
+}
+function refreshSkillBtn(){
+  const b=$('skillBtn');
+  const names={sprint:'⚡ عدّاء',bandage:'🩹 مسعف',flash:'💡 فلاش',shield:'🛡️ درع'};
+  b.innerHTML=(names[loadout.survSkill]||'⚡<br>مهارة')+(skillCD>0?`<br>${Math.ceil(skillCD)}ث`:'');
+  b.classList.toggle('ready',!!loadout.survSkill&&skillCD<=0);
+  $('trapBtn').style.display=(Net.myRole==='monster'&&Econ.has('trap'))?'block':'none';
+}
+/* ============ UI ============ */
+const msgEl=$('msg');let msgT=null;
+function showMsg(t){msgEl.textContent=t;msgEl.style.opacity=1;clearTimeout(msgT);msgT=setTimeout(()=>msgEl.style.opacity=0,2200);}
+function allSurvivors(){
+  const list=[player];
+  for(const id in remoteAvatars)list.push(remoteAvatars[id]);
+  return list;
+}
+function refreshHUD(){
+  // فرص النجاة: 3 معينات مضيئة بدون إيموجي
+  for(let i=0;i<3;i++){const el=$('lp'+i);el.classList.toggle('lost',player.hearts<=i);el.classList.toggle('bleed',player.bleed&&player.hearts>i);}
+  $('livesLabel').textContent=Net.myRole==='monster'?('وحش '+MTYPES[loadout.monsSkin].name):('فرص النجاة '+Math.max(0,player.hearts)+'/3');
+  $('kR').classList.toggle('owned',!!player.has.R);$('kB').classList.toggle('owned',!!player.has.B);
+  $('kG').classList.toggle('owned',!!player.has.G);$('kH').classList.toggle('owned',!!player.has.H);
+  $('handLabel').textContent=Net.myRole==='monster'?'👹 مخالب الوحش':('✋ '+(player.handKind==='R'?'مفتاح أحمر باليد':player.handKind==='B'?'مفتاح أزرق باليد':player.handKind==='G'?'مفتاح أخضر باليد':player.handKind==='H'?'مطرقة باليد 🔨':'فارغ'));
+  $('bleedIcon').style.display=player.bleed&&player.alive?'block':'none';
+  const ts=$('teamStatus');let html='';
+  for(const id in remoteAvatars){const r=remoteAvatars[id];const pips='◆'.repeat(Math.max(0,r.hearts))+'◇'.repeat(Math.max(0,3-r.hearts));html+=`<div class="mate ${!r.alive?'dead':r.bleed?'bleed':''}">${r.alive?pips+' '+r.name:'✕ '+r.name}</div>`;}
+  ts.innerHTML=html||'<div class="mate">وضع فردي — أنت وحدك</div>';
+  const obj=$('objective');
+  if(Net.myRole==='monster')obj.textContent='👹 امسك الناجين قبل هروبهم! (E للضرب)';
+  else if(!player.has.R)obj.textContent='🔍 ابحث عن المفتاح الأحمر';
+  else if(!doors[0].open)obj.textContent='🚪 افتح الباب الأحمر';
+  else if(!player.has.B)obj.textContent='🔍 ابحث عن المفتاح الأزرق والمطرقة';
+  else if(!doors[1].open)obj.textContent='🚪 افتح الباب الأزرق';
+  else if(!player.has.G)obj.textContent='🔍 ابحث عن المفتاح الأخضر';
+  else if(!doors[2].open)obj.textContent='🚪 افتح الباب الأخضر ثم اكسر الحاجز';
+  else obj.textContent='🚐 اهربوا لسيارة النجاة قبل الوقت!';
+}
+/* ============ ACTIONS ============ */
+let healHold={active:false,t:0,target:null,byPlayer:false};
+function nearestInteract(){
+  let best=null,bd=2.6;
+  for(const it of items){if(it.taken)continue;const d=Math.hypot(it.x-player.pos.x,it.z-player.pos.z);if(d<bd){bd=d;best={type:'item',it};}}
+  for(const dr of doors){if(dr.open)continue;const d=Math.hypot(dr.x-player.pos.x,dr.z-player.pos.z);if(d<3.4&&bd>d){bd=d;best={type:'door',dr};}}
+  for(const p of planks){if(p.done)continue;const d=Math.hypot(p.grp.position.x-player.pos.x,p.grp.position.z-player.pos.z);if(d<3.4&&bd>d){bd=d;best={type:'plank',p};}}
+  return best;
+}
+function netSendEvt(e){if(Net.mode==='room'){if(Net.isHost)broadcast({t:'evt',e});else sendHost({t:'act',a:e});}}
+function doAction(){
+  if(!started||gameOver)return;
+  if(Net.myRole==='monster'){monsterAttack();return;}
+  if(!player.alive)return;
+  const healables=[...Object.values(remoteAvatars)];
+  for(const b of healables){if(b.alive&&b.bleed&&b.pos.distanceTo(player.pos)<2.6){healHold={active:true,t:0,target:b,byPlayer:true};$('healBar').style.display='block';showMsg(`💚 تعالج ${b.name}...`);return;}}
+  const n=nearestInteract();
+  if(!n){
+    // علاج ذاتي بالضماد (بدون بوتات): اضغط مطولاً
+    if(player.bleed){const need=loadout.survSkill==='bandage'?2.5:5;healHold={active:true,t:0,target:player,byPlayer:true,self:true,need};$('healBar').style.display='block';showMsg('🩹 تضمّد نفسك... ابقَ ثابتاً');return;}
+    showMsg('🔎 لا شيء قريب');return;
+  }
+  if(n.type==='item'){
+    n.it.taken=true;mapGroup.remove(n.it.mesh,n.it.ring,n.it.light);
+    if(n.it.kind==='H'){player.has.H=true;attachHand(player,'H');showMsg('🔨 المطرقة في يدك!');earn(50);}
+    else{player.has[n.it.kind]=true;attachHand(player,n.it.kind);showMsg({R:'🔴 مفتاح أحمر باليد!',B:'🔵 مفتاح أزرق باليد!',G:'🟢 مفتاح أخضر باليد!'}[n.it.kind]);earn(50);}
+    netSendEvt({k:'item',kind:n.it.kind});refreshHUD();syncCoins();
+  }else if(n.type==='door'){
+    if(player.has[n.dr.keyId]){openDoor(n.dr);showMsg('✅ انفتح الباب!');attachHand(player,player.handKind==='H'?'H':'');}
+    else showMsg('🔒 تحتاج المفتاح المناسب');
+  }else if(n.type==='plank'){
+    if(player.has.H){breakPlank(n.p);showMsg('💥 كسرت الحاجز!');}
+    else showMsg('🪵 تحتاج المطرقة');
+  }
+}
+function openDoor(dr){if(dr.open)return;dr.open=true;const i=colliders.indexOf(dr.col);if(i>=0)colliders.splice(i,1);netSendEvt({k:'door',key:dr.keyId});refreshHUD();}
+function breakPlank(p){if(p.done)return;p.done=true;const i=colliders.indexOf(p.col);if(i>=0)colliders.splice(i,1);p.grp.children.forEach((pl,j)=>{setTimeout(()=>{pl.rotation.x+=1.2;},j*80);});setTimeout(()=>mapGroup.remove(p.grp),1200);netSendEvt({k:'plank'});refreshHUD();}
+function handleRemoteAction(a,from){
+  if(a.k==='item'){const it=items.find(x=>x.kind===a.kind&&!x.taken);if(it){it.taken=true;mapGroup.remove(it.mesh,it.ring,it.light);}}
+  else if(a.k==='door'){const dr=doors.find(x=>x.keyId===a.key&&!x.open);if(dr){dr.open=true;const i=colliders.indexOf(dr.col);if(i>=0)colliders.splice(i,1);}}
+  else if(a.k==='plank'){const p=planks.find(x=>!x.done);if(p){p.done=true;const i=colliders.indexOf(p.col);if(i>=0)colliders.splice(i,1);mapGroup.remove(p.grp);}}
+  else if(a.k==='hit'){const t=allSurvivors().find(s=>s.netId===from||s===player);hitChar(player);}
+  refreshHUD();
+}
+function applyEvt(e){
+  if(e.k==='item'){const it=items.find(x=>x.kind===e.kind&&!x.taken);if(it){it.taken=true;mapGroup.remove(it.mesh,it.ring,it.light);}if(e.who!==Net.myId){}}
+  else if(e.k==='door'){const dr=doors.find(x=>x.keyId===e.key&&!x.open);if(dr){dr.open=true;const i=colliders.indexOf(dr.col);if(i>=0)colliders.splice(i,1);}}
+  else if(e.k==='plank'){const p=planks.find(x=>!x.done);if(p){p.done=true;const i=colliders.indexOf(p.col);if(i>=0)colliders.splice(i,1);try{mapGroup.remove(p.grp);}catch(_){}}}
+  else if(e.k==='hit'){const r=remoteAvatars[e.who];if(r)hitCharSilent(r);else if(e.who===Net.myId)hitChar(player);}
+  else if(e.k==='heal'){const r=remoteAvatars[e.who];if(r){r.bleed=false;r.hearts=Math.min(3,r.hearts+1);r.alive=true;r.g.rotation.x=0;}else if(e.who===Net.myId){player.bleed=false;player.hearts=Math.min(3,player.hearts+1);}}
+  refreshHUD();
+}
+/* ============ DAMAGE/HEAL ============ */
+let cameraShake=0;
+let rooted=0; // مثبت بفخ
+function hitChar(ch){
+  if(!ch.alive||gameOver)return;
+  if(ch===player&&loadout.survSkill==='shield'&&!shieldUsed){shieldUsed=true;showMsg('🛡️ الدرع امتص الضربة!');cameraShake=.4;refreshHUD();return;}
+  ch.hearts--;ch.bleed=ch.hearts>0;ch.bloodT=0;
+  dropBlood(ch.pos.x,ch.pos.z);
+  if(ch===player){const d=$('dmg');d.style.opacity=1;setTimeout(()=>d.style.opacity=0,350);try{navigator.vibrate&&navigator.vibrate(200);}catch(_){}cameraShake=.7;showMsg(ch.hearts>0?`أصابك الوحش! فرصك المتبقية ${ch.hearts}/3`:'سقطت! نفدت فرصك');}
+  else showMsg(`${ch.name} مصاب! اذهب وعالجه`);
+  if(ch.hearts<=0){ch.alive=false;ch.g.rotation.x=-Math.PI/2;checkEnd();}
+  netSendEvt({k:'hit',who:ch===player?Net.myId:'x'});
+  refreshHUD();
+}
+function hitCharSilent(ch){ch.hearts--;ch.bleed=ch.hearts>0;dropBlood(ch.pos.x,ch.pos.z);if(ch.hearts<=0){ch.alive=false;ch.g.rotation.x=-Math.PI/2;}}
+function healComplete(healer,target){target.bleed=false;target.hearts=Math.min(3,target.hearts+1);target.alive=true;target.g.rotation.x=0;showMsg(`💚 شُفي ${target===player?'':target.name} — توقف النزيف!`);netSendEvt({k:'heal',who:target===player?Net.myId:'r'});refreshHUD();}
+function monsterAttack(){
+  if(monster.cool>0)return;monster.cool=1.5;
+  let best=null,bd=3;
+  for(const s of allSurvivors()){if(!s.alive)continue;const d=s.pos.distanceTo(monster.pos);if(d<bd){bd=d;best=s;}}
+  if(best){if(best===player||Object.values(remoteAvatars).includes(best)){if(Net.mode==='room'){broadcast({t:'evt',e:{k:'hit',who:best===player?'target':'r'}});hitCharSilent(best);if(best===player){const d=$('dmg');d.style.opacity=1;setTimeout(()=>d.style.opacity=0,350);cameraShake=.7;showMsg('🩸 ضربك الوحش البشري!');}}else hitChar(best);}else hitChar(best);}
+  else showMsg('👹 لا أحد قريب — اقترب واضرب');
+}
+
+/* ============ START FLOWS ============ */
+let timeLeft=TIME_LIMIT;
+function resetChars(){
+  player.hearts=3;player.bleed=false;player.alive=true;player.has={R:false,B:false,G:false,H:false};player.g.rotation.x=0;attachHand(player,'');
+  shieldUsed=false;rooted=0;skillCD=0;traps.forEach(t=>scene.remove(t.g));traps.length=0;
+  monster.cool=0;monster.wpI=0;monster.stun=0;monster.rage=0;timeLeft=TIME_LIMIT;gameOver=false;win=false;$('endScreen').classList.remove('show');
+}
+$('soloBtn').onclick=()=>{
+  Net.mode='solo';Net.isHost=true;Net.myRole='survivor';Net.name=myName();
+  const sel=document.querySelector('#mtypeSel .mtype.sel');
+  buildMap(mapId);buildMonster(sel?sel.dataset.mt:'shadow');resetChars();
+  player.pos.copy(spawns[0]);
+  monster.pos.set(patrolWps[0].x,0,patrolWps[0].z);
+  player.name=Net.name;player.tag.material.map.dispose();player.g.remove(player.tag);player.tag=makeNameSprite(Net.name,'#4ade80');player.g.add(player.tag);
+  started=true;$('menu').style.display='none';showMsg('🔍 ابحث عن المفتاح الأحمر!');refreshHUD();
+};
+$('startBtn').onclick=()=>{
+  if(Net.mode!=='room'||!Net.isHost)return;
+  if(Net.players.length<1){alert('لا يوجد لاعبون');return;}
+  const mons=Net.players.filter(p=>p.role==='monster');
+  if(monsterMode==='human'&&mons.length!==1){alert('في وضع الوحش الحقيقي: لازم لاعب واحد يضغط زر (👹 أنا الوحش)');return;}
+  if(monsterMode==='bot'){Net.players.forEach(p=>p.role='survivor');}
+  Net.monsterBy=(monsterMode==='human')?mons[0].id:'';
+  const order=[...Net.players];
+  const spawnIdx={};order.forEach((p,i)=>spawnIdx[p.id]=i);
+  const sel=document.querySelector('#mtypeSel .mtype.sel');const mtype=sel?sel.dataset.mt:'shadow';
+  broadcast({t:'start',mapId,monsterMode,mtype,players:order.map(p=>({id:p.id,name:p.name,role:p.role})),spawnIdx,monsterBy:Net.monsterBy});
+  startMultiplayer({mapId,monsterMode,mtype,players:order.map(p=>({id:p.id,name:p.name,role:p.role})),spawnIdx,monsterBy:Net.monsterBy});
+};
+function startMultiplayer(d){
+  mapId=d.mapId;monsterMode=d.monsterMode;Net.monsterBy=d.monsterBy||'';
+  buildMap(mapId);buildMonster(d.mtype||loadout.monsSkin||'shadow');resetChars();
+  const me=d.players.find(p=>p.id===Net.myId)||{role:'survivor',name:Net.name};
+  Net.myRole=me.role||'survivor';
+  if(Net.myRole==='monster')buildMonster(loadout.monsSkin||'shadow');
+  const others=d.players.filter(p=>p.id!==Net.myId);
+  // لا بوتات — بشر فقط
+  const idx=d.spawnIdx[Net.myId]||0;
+  player.pos.copy(spawns[idx%spawns.length]);
+  player.name=Net.name;player.g.remove(player.tag);player.tag=makeNameSprite(Net.name,'#4ade80');player.g.add(player.tag);
+  others.forEach((p,i)=>{
+    if(p.role==='monster')return;
+    const av=getRemote(p.id,p.name,PCOLORS[(d.spawnIdx[p.id]||i+1)%PCOLORS.length]);
+    av.pos.copy(spawns[(d.spawnIdx[p.id]||0)%spawns.length]);av.hearts=3;av.alive=true;av.bleed=false;av.g.rotation.x=0;
+  });
+  monster.pos.set(patrolWps[0].x,0,patrolWps[0].z);
+  started=true;$('menu').style.display='none';
+  if(Net.myRole==='monster')showMsg('👹 أنت الوحش! امسكهم قبل الهروب');
+  else showMsg('🤝 بدأت الغرفة! تعاونوا واهربوا');
+  $('roomPill').style.display='flex';$('roomPill').textContent='🔑 '+Net.code;
+  refreshHUD();
+  // مزامنة المضيف
+  if(Net.isHost)setInterval(hostSnap,120);
+  setInterval(cliSend,90);
+}
+function hostSnap(){
+  if(!started||gameOver||!Net.isHost)return;
+  const ps=[{id:Net.myId,x:player.pos.x,z:player.pos.z,yaw:Net.myRole==='monster'?monster.yaw:player.yaw,hearts:player.hearts,bleed:player.bleed,alive:player.alive,hand:player.handKind,role:Net.myRole,name:Net.name}];
+  for(const id in remoteAvatars){const r=remoteAvatars[id];const rid=Object.keys(Net.remote).includes(id)?id:id;ps.push({id,x:r.pos.x,z:r.pos.z,yaw:r.yaw,hearts:r.hearts,bleed:r.bleed,alive:r.alive,hand:r.handKind||'',role:'survivor',name:r.name});}
+  // دمج مواقع العملاء
+  for(const id in Net.remote){const s=Net.remote[id];if(!ps.find(p=>p.id===id))ps.push({id,x:s.x||0,z:s.z||0,yaw:s.yaw||0,hearts:s.hearts??3,bleed:!!s.bleed,alive:s.alive!==false,hand:s.hand||'',role:'survivor',name:s.name||'?'});}
+  broadcast({t:'snap',ps,m:{x:monster.pos.x,z:monster.pos.z,yaw:monster.yaw},doors:doors.map(d=>d.open),items:items.map(i=>i.taken),planks:planks.map(p=>p.done),time:timeLeft});
+}
+function cliSend(){
+  if(!started||gameOver||Net.mode!=='room')return;
+  if(Net.myRole==='monster'){sendHost({t:'mpos',x:monster.pos.x,z:monster.pos.z,yaw:monster.yaw});if(Net.isHost&&Net.monsterBy===Net.myId){}}
+  else sendHost({t:'pos',x:player.pos.x,z:player.pos.z,yaw:player.yaw,bleed:player.bleed,hearts:player.hearts,alive:player.alive,hand:player.handKind,name:Net.name});
+}
+function applySnap(d){
+  if(Net.isHost)return;
+  timeLeft=d.time??timeLeft;
+  (d.ps||[]).forEach(p=>{
+    if(p.id===Net.myId)return;
+    if(p.role==='monster')return;
+    const av=getRemote(p.id,p.name||'?',PCOLORS[1]);
+    av.pos.set(p.x,0,p.z);av.yaw=p.yaw;av.hearts=p.hearts;av.bleed=p.bleed;
+    if(av.alive!==p.alive){av.alive=p.alive;av.g.rotation.x=p.alive?0:-Math.PI/2;}
+    if(av.handKind!==p.hand&&p.hand!==undefined){av.handKind=p.hand;attachHand(av,p.hand||'');}
+    av.g.position.copy(av.pos);av.g.rotation.y=av.yaw;
+  });
+  if(d.m&&(Net.myRole!=='monster')){monster.pos.set(d.m.x,0,d.m.z);monster.yaw=d.m.yaw;}
+  (d.doors||[]).forEach((o,i)=>{if(o&&doors[i]&&!doors[i].open){doors[i].open=true;const ci=colliders.indexOf(doors[i].col);if(ci>=0)colliders.splice(ci,1);}});
+  (d.items||[]).forEach((tk,i)=>{if(tk&&items[i]&&!items[i].taken){items[i].taken=true;try{mapGroup.remove(items[i].mesh,items[i].ring,items[i].light);}catch(_){}}});
+  (d.planks||[]).forEach((dn,i)=>{if(dn&&planks[i]&&!planks[i].done){planks[i].done=true;const ci=colliders.indexOf(planks[i].col);if(ci>=0)colliders.splice(ci,1);try{mapGroup.remove(planks[i].grp);}catch(_){}}});
+  refreshHUD();
+}
+/* preview map behind menu */
+buildMap('village');buildMonster(loadout.monsSkin||'shadow');resetChars();player.pos.set(0,0,-30);monster.pos.set(0,0,20);
+refreshShop();refreshSkillBtn();syncCoins();
+document.querySelectorAll('#mapSel .mapCard').forEach(c=>c.addEventListener('click',()=>{if(!started){buildMap(c.dataset.map);monster.pos.set(patrolWps[0].x,0,patrolWps[0].z);}}));
+
+/* ============ LOOP ============ */
+const clock=new THREE.Clock();const tmpV=new THREE.Vector3();
+function dirFromYaw(y){return new THREE.Vector3(-Math.sin(y),0,-Math.cos(y));}
+function moveChar(pos,yawV,mx,mz,sp,dt){
+  const sin=Math.sin(yawV),cos=Math.cos(yawV);
+  pos.x+=(mx*cos-mz*sin)*sp*dt;pos.z+=(-mx*sin-mz*cos)*sp*dt;collide(pos);
+}
+function updatePlayer(dt){
+  if(Net.myRole==='monster'){updateMonsterSelf(dt);return;}
+  if(!player.alive){camera.lookAt(player.pos.x,1,player.pos.z);return;}
+  skillCD=Math.max(0,skillCD-dt);
+  if(rooted>0){rooted-=dt;showMsg('🪤 عالق في فخ!');}
+  let mx=0,mz=0;
+  if(keys.KeyW)mz+=1;if(keys.KeyS)mz-=1;if(keys.KeyA)mx-=1;if(keys.KeyD)mx+=1;
+  mx+=joyVec.x;mz+=-joyVec.y;
+  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}
+  const sprint=(keys.ShiftLeft||keys.ShiftRight||sprintTouch)&&l>.1;
+  let sp=(sprint?6.6:4.0)*(player.bleed?.78:1);
+  if(loadout.survSkill==='sprint')sp*=1.12;
+  if(rooted>0)sp=0;
+  const ox=player.pos.x,oz=player.pos.z;
+  moveChar(player.pos,yaw,mx,mz,sp,dt);
+  if(l>.1)player.yaw=Math.atan2(-(player.pos.x-ox),-(player.pos.z-oz))||player.yaw;
+  player.g.position.copy(player.pos);player.g.rotation.y=player.yaw;
+  animHuman(player,performance.now()*.001,l>.15);
+  // فخوخ تحت الأقدام
+  for(const tr of traps){if(Math.hypot(tr.x-player.pos.x,tr.z-player.pos.z)<.9&&rooted<=0){rooted=3;scene.remove(tr.g);traps.splice(traps.indexOf(tr),1);showMsg('🪤 وقعت في فخ الوحش!');cameraShake=.8;break;}}
+  if(player.bleed){player.bloodT+=dt;if(player.bloodT>.45){player.bloodT=0;dropBlood(player.pos.x,player.pos.z);}}
+  if(healHold.active&&healHold.byPlayer&&healHold.target){
+    const t=healHold.target;const need=healHold.self?(healHold.need||5):3;
+    const maxD=healHold.self?99:2.8;
+    if(l>.3&&healHold.self){healHold.active=false;$('healBar').style.display='none';showMsg('تحركت! توقف التضميد');}
+    else if(!t.alive||!t.bleed||t.pos.distanceTo(player.pos)>maxD){healHold.active=false;$('healBar').style.display='none';}
+    else{healHold.t+=dt;$('healFill').style.width=(healHold.t/need*100)+'%';
+      if(healHold.t>=need){healHold.active=false;$('healBar').style.display='none';healComplete(player,t);earn(20);}}
+  }
+  if(skillCD>0&&Math.abs(skillCD%1-dt)<.05)refreshSkillBtn();
+  const cd=dirFromYaw(yaw);
+  camera.position.lerp(tmpV.set(player.pos.x+cd.x*5.2,2.6+pitch*-5,player.pos.z+cd.z*5.2),1-Math.pow(.001,dt));
+  camera.lookAt(player.pos.x,1.6,player.pos.z);
+  if(cameraShake>0){camera.position.x+=(Math.random()-.5)*cameraShake*.5;camera.position.y+=(Math.random()-.5)*cameraShake*.5;cameraShake-=dt*2;}
+  player.spot.visible=lightOn;
+  if(player.pos.distanceTo(escapePos)<3.4&&doors.every(d=>d.open))endGame(true);
+}
+function updateMonsterSelf(dt){
+  if(monster.stun>0){monster.stun-=dt;showMsg('💡 مصعوق!');return;}
+  let mx=0,mz=0;
+  if(keys.KeyW)mz+=1;if(keys.KeyS)mz-=1;if(keys.KeyA)mx-=1;if(keys.KeyD)mx+=1;
+  mx+=joyVec.x;mz+=-joyVec.y;
+  const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}
+  const sprint=(keys.ShiftLeft||keys.ShiftRight||sprintTouch);
+  let spd=sprint?6.8:MTYPES[loadout.monsSkin]?.speed||5.2;
+  if(monster.rage>0){spd*=1.5;monster.rage-=dt;}
+  moveChar(monster.pos,yaw,mx,mz,spd,dt);
+  if(l>.1)monster.yaw=Math.atan2(-(mx*Math.cos(yaw)-mz*Math.sin(yaw)),-(-mx*Math.sin(yaw)-mz*Math.cos(yaw)));
+  monster.cool-=dt;
+  mGroup.position.copy(monster.pos);mGroup.rotation.y=monster.yaw;
+  const cd=dirFromYaw(yaw);
+  camera.position.lerp(tmpV.set(monster.pos.x+cd.x*6,3.2+pitch*-5,monster.pos.z+cd.z*6),1-Math.pow(.001,dt));
+  camera.lookAt(monster.pos.x,2,monster.pos.z);
+  // ضرب تلقائي
+  if(monster.cool<=0){for(const s of allSurvivors()){if(s.alive&&s.pos.distanceTo(monster.pos)<2.2){monster.cool=2;if(s===player||Object.values(remoteAvatars).includes(s)){hitCharSilent(s);if(s===player){const d=$('dmg');d.style.opacity=1;setTimeout(()=>d.style.opacity=0,350);}broadcast({t:'evt',e:{k:'hit',who:'x'}});}else hitChar(s);break;}}}
+}
+function monsterAI(dt){
+  const m=monster;if(gameOver)return;m.cool-=dt;
+  if(m.stun>0){m.stun-=dt;return;}
+  const T=MTYPES[monsterType]||MTYPES.shadow;
+  let prey=null,bd=1e9;
+  const cands=[player,...Object.values(remoteAvatars)];
+  for(const ch of cands){if(!ch.alive)continue;let d=ch.pos.distanceTo(m.pos);if(ch.bleed)d-=4;if(!lightOn&&ch===player)d+=3;if(d<bd){bd=d;prey=ch;}}
+  let bloodLure=null;
+  if(!prey||m.pos.distanceTo(prey.pos)>13){for(const b of bloodPool){if(m.pos.distanceTo(b.m.position)<4){bloodLure=b.m.position;break;}}}
+  let dest,spd=2.8;
+  const seen=prey&&m.pos.distanceTo(prey.pos)<16&&!losBlocked(m.pos,prey.pos);
+  if(seen){dest=prey.pos;spd=T.speed;}else if(bloodLure){dest=bloodLure;spd=3.4;}
+  else{dest=patrolWps[m.wpI];if(m.pos.distanceTo(dest)<2)m.wpI=(m.wpI+1)%patrolWps.length;}
+  const dx=dest.x-m.pos.x,dz=dest.z-m.pos.z,l=Math.hypot(dx,dz);
+  if(l>.2){m.pos.x+=dx/l*spd*dt;m.pos.z+=dz/l*spd*dt;collide(m.pos,.6);m.yaw=Math.atan2(-dx/l,-dz/l);}
+  mGroup.position.copy(m.pos);mGroup.position.y=Math.abs(Math.sin(performance.now()*.006))*.14;mGroup.rotation.y=m.yaw;
+  // أنيميشن الوحش: تأرجح أذرع وأرجل
+  const t=performance.now()*.008;
+  if(mParts.arms){mParts.arms[0].rotation.x=Math.sin(t)*.7;mParts.arms[1].rotation.x=-Math.sin(t)*.7;}
+  if(mParts.legs){mParts.legs[0].rotation.x=-Math.sin(t)*.6;mParts.legs[1].rotation.x=Math.sin(t)*.6;}
+  if(mParts.head)mParts.head.position.y=2.9*(T.scale||1)+Math.sin(t*.7)*.06;
+  // الشبح يختفي جزئياً أحياناً
+  if(T.ghost)mGroup.visible=(Math.sin(performance.now()*.001)>.92)?false:true;
+  if(prey&&m.pos.distanceTo(prey.pos)<2.1&&m.cool<=0){m.cool=(monsterType==='brute'?2.6:2.0);if(Object.values(remoteAvatars).includes(prey))hitCharSilent(prey);else hitChar(prey);}
+}
+let flick=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+  grassUniforms.uTime.value+=dt;flick+=dt;
+  for(const L of lampLights)L.l.intensity=L.base+Math.sin(flick*9+L.seed)*2.5;
+  for(const it of items){if(it.taken)continue;it.mesh.rotation.y+=dt*1.6;it.mesh.position.y=1+Math.sin(performance.now()*.003+it.phase)*.15;}
+  for(const t of trees){const dP=Math.min(player.pos.distanceTo(t.g.position),monster.pos.distanceTo(t.g.position));if(dP<2.4)t.shake=1;t.shake=Math.max(0,t.shake-dt*1.5);t.g.rotation.y=t.baseRotY+Math.sin(performance.now()*.001+t.baseRotY)*.03+t.shake*Math.sin(performance.now()*.03)*.12;}
+  for(let i=bloodPool.length-1;i>=0;i--){const b=bloodPool[i];b.life-=dt;if(b.life<15)b.m.material.opacity=b.life/15*.9;if(b.life<=0){bloodGroup.remove(b.m);bloodPool.splice(i,1);}}
+  for(const dr of doors){if(dr.open&&dr.mesh.position.y<4.2)dr.mesh.position.y+=dt*1.6;}
+  if(started&&!gameOver){
+    timeLeft-=dt;
+    const mm=String(Math.floor(Math.max(0,timeLeft)/60)).padStart(2,'0'),ss=String(Math.floor(Math.max(0,timeLeft)%60)).padStart(2,'0');
+    const te=$('timer');te.textContent=`⏱ ${mm}:${ss}`;te.classList.toggle('warn',timeLeft<60);
+    if(timeLeft<=0)endGame(false,'انتهى الوقت!');
+    updatePlayer(dt);
+    if(dust)dust.rotation.y+=dt*.02;
+    // أنيميشن اللاعبين عن بُعد
+    for(const id in remoteAvatars){const r=remoteAvatars[id];animHuman(r,performance.now()*.001+r.pos.x,false);}
+    // رؤية الكشف للوحش
+    if(Net.myRole==='monster'&&Econ.has('vision')){for(const id in remoteAvatars){remoteAvatars[id].g.traverse(o=>{if(o.material&&o.material.emissive)o.material.emissive.setHex(0x330000);});}}
+    const humanMonster=(monsterMode==='human'&&(Net.mode==='room'));
+    if(!humanMonster)monsterAI(dt);
+    else{if(Net.myRole!=='monster'&&Net.isHost){/* المضيف يحدّث من mpos المستلم */mGroup.position.copy(monster.pos);mGroup.rotation.y=monster.yaw;}}
+    for(const id in remoteAvatars){const r=remoteAvatars[id];if(Net.mode==='solo')continue;if(!Net.remote[id]&&Net.isHost){r.g.position.copy(r.pos);r.g.rotation.y=r.yaw;}}
+  }else{
+    const t=performance.now()*.0002;camera.position.set(Math.sin(t)*30,14,Math.cos(t)*30);camera.lookAt(0,0,0);mGroup.position.copy(monster.pos);
+  }
+  renderer.render(scene,camera);
+}
+refreshHUD();animate();
+function checkEnd(){if(Net.myRole!=='monster'&&!player.alive)endGame(false,'سقطت! نفدت فرص النجاة الثلاث.');}
+function endGame(w,reason=''){
+  if(gameOver)return;gameOver=true;win=w;
+  if(w)earn(100);else earn(15);
+  $('endScreen').classList.add('show');
+  $('endTitle').textContent=w?'🎉 نجوت!':'💀 انتهت اللعبة';
+  $('endTitle').style.color=w?'#4ade80':'#ff5b5b';
+  const aliveN=allSurvivors().filter(c=>c.alive).length;
+  $('endDesc').innerHTML=w?`هربت لسيارة النجاة! الناجون: ${aliveN}<br>ربحت 100 🪙 (رصيدك ${Econ.coins})`:`${reason}<br>الناجون: ${aliveN}<br>ربحت 15 🪙 (رصيدك ${Econ.coins})`;
+  if(Net.mode==='room')broadcast({t:'evt',e:{k:'end',w}});
+}
+</script>
+</body>
+</html>
