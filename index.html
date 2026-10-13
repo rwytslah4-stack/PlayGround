@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>الهروب من الغابة | 3D رعب للجوال</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0f0a;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#fff;user-select:none}
+#game-canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;background:radial-gradient(ellipse at center,#16241a 0%,#070b08 70%);padding:20px;overflow-y:auto}
+.hidden{display:none!important}
+h1.title{font-size:clamp(28px,7vw,52px);color:#ffcf5c;text-shadow:0 0 25px rgba(255,150,0,.5),0 4px 0 #000;margin-bottom:6px}
+.sub{color:#9fbf9f;margin-bottom:26px;font-size:clamp(13px,3.5vw,17px)}
+.menu-btn{width:min(340px,86vw);padding:16px;margin:8px;border:none;border-radius:14px;font-size:20px;font-weight:800;cursor:pointer;color:#fff;background:linear-gradient(180deg,#2d6a2d,#1a3d1a);box-shadow:0 4px 0 #0c220c,0 6px 18px rgba(0,0,0,.6);transition:.15s}
+.menu-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #0c220c}
+.menu-btn.gold{background:linear-gradient(180deg,#c9971f,#7a5a0c);box-shadow:0 4px 0 #4a3706,0 6px 18px rgba(0,0,0,.6)}
+.menu-btn.blue{background:linear-gradient(180deg,#2b5a8a,#162f48);box-shadow:0 4px 0 #0b1826,0 6px 18px rgba(0,0,0,.6)}
+.menu-btn.gray{background:linear-gradient(180deg,#4a4a4a,#222);box-shadow:0 4px 0 #000}
+.map-grid{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+.map-card{width:min(200px,86vw);background:#101b12;border:2px solid #2d5a2d;border-radius:14px;padding:12px;cursor:pointer;text-align:center;transition:.15s}
+.map-card.sel{border-color:#ffcf5c;box-shadow:0 0 18px rgba(255,207,92,.5);background:#1a2a14}
+.map-card .emoji{font-size:46px}
+.map-card h3{margin:8px 0 4px;font-size:17px}
+.map-card p{font-size:12px;color:#9fbf9f;min-height:32px}
+.back-btn{margin-top:14px;background:none;border:1px solid #555;color:#ccc;padding:10px 26px;border-radius:10px;cursor:pointer;font-size:15px}
+#hud{position:fixed;inset:0;z-index:5;pointer-events:none}
+#topbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:linear-gradient(180deg,rgba(0,0,0,.65),transparent)}
+.badge{background:rgba(0,0,0,.6);border:1px solid #444;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700}
+#hearts{color:#ff5c5c;font-size:16px;letter-spacing:2px}
+#hpbar{width:120px;height:10px;background:#300;border-radius:6px;overflow:hidden;margin-top:4px}
+#hpfill{height:100%;width:100%;background:linear-gradient(90deg,#ff2d2d,#7bff7b);transition:.3s}
+#wound{position:absolute;inset:0;pointer-events:none;opacity:0;transition:.4s;background:radial-gradient(ellipse at center,transparent 40%,rgba(180,0,0,.75) 100%)}
+#wound.on{opacity:1}
+#scratchTag{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:rgba(150,0,0,.9);padding:8px 18px;border-radius:20px;font-size:14px;font-weight:800;display:none;border:1px solid #ff8080}
+#objPanel{position:absolute;top:64px;right:8px;background:rgba(0,0,0,.65);border:1px solid #4a7a3a;border-radius:10px;padding:8px 10px;font-size:12px;max-width:190px;line-height:1.9}
+#objPanel b{color:#ffcf5c}
+#invBar{position:absolute;bottom:118px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:none}
+.inv{background:rgba(0,0,0,.65);border:1px solid #555;border-radius:8px;padding:4px 8px;font-size:11px}
+.inv.got{border-color:#ffcf5c;color:#ffcf5c}
+#msg{position:absolute;bottom:180px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);border:1px solid #ffcf5c;color:#ffedaa;padding:10px 18px;border-radius:12px;font-size:14px;display:none;text-align:center;max-width:88vw}
+#interactBtn,#healBtn,#shootBtn,#jumpBtn{position:absolute;pointer-events:auto;border:none;border-radius:50%;font-weight:800;cursor:pointer;display:none}
+#interactBtn{bottom:190px;right:16px;width:76px;height:76px;font-size:13px;background:rgba(255,207,92,.92);color:#222}
+#healBtn{bottom:110px;right:20px;width:64px;height:64px;font-size:12px;background:rgba(200,30,30,.9);color:#fff}
+#shootBtn{bottom:110px;left:96px;width:64px;height:64px;font-size:12px;background:rgba(30,120,200,.9);color:#fff}
+#jumpBtn{bottom:190px;left:16px;width:64px;height:64px;font-size:22px;background:rgba(255,255,255,.18);color:#fff;border:1px solid #888}
+#joy{position:absolute;bottom:24px;right:16px;width:124px;height:124px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);pointer-events:auto;display:none}
+#knob{position:absolute;left:50%;top:50%;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.4);transform:translate(-50%,-50%)}
+#lookArea{position:absolute;bottom:0;left:0;width:45%;height:60%;pointer-events:auto}
+#healBar{position:absolute;bottom:260px;left:50%;transform:translateX(-50%);width:220px;display:none;text-align:center;background:rgba(0,0,0,.7);padding:10px;border-radius:10px;font-size:13px}
+#healProg{height:10px;background:#333;border-radius:6px;margin-top:6px;overflow:hidden}
+#healFill{height:100%;width:0;background:#4dff4d}
+#stunTag{position:absolute;top:110px;left:50%;transform:translateX(-50%);background:rgba(30,120,255,.9);padding:6px 16px;border-radius:16px;font-size:13px;font-weight:800;display:none}
+.store-box{background:#141414;border:1px dashed #666;border-radius:14px;padding:30px;margin:14px;max-width:340px;text-align:center;color:#aaa}
+.srv{background:#101b12;border:1px solid #2d5a2d;border-radius:10px;padding:12px;margin:6px;width:min(340px,86vw);display:flex;justify-content:space-between;align-items:center}
+.srv button{background:#2d6a2d;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:800;cursor:pointer}
+#loading{background:#000;color:#ffcf5c;font-size:18px}
+.kbd-hint{font-size:12px;color:#777;margin-top:14px}
+@media (min-width:760px){#joy{display:none!important}}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<!-- القائمة الرئيسية: بدون دمى وبدون تحكم قبل الدخول -->
+<div id="menu" class="screen">
+  <h1 class="title">🌲 الهروب من الغابة 🌲</h1>
+  <div class="sub">لعبة رعب 3D للجوال والتابلت — اجمع الأغراض واهرب من الوحش</div>
+  <button class="menu-btn gold" id="btnCreate">🛠️ إنشاء سيرفر</button>
+  <button class="menu-btn" id="btnServers">🌐 ادخل على السيرفرات</button>
+  <button class="menu-btn gray" id="btnStore">🛒 المتجر</button>
+  <div class="kbd-hint">الإصدار 2.0 — شخصية إنسان واقعية + وحش الغابة + 3 خرائط</div>
+</div>
+
+<div id="create" class="screen hidden">
+  <h1 class="title" style="font-size:30px">🛠️ إنشاء سيرفر</h1>
+  <div class="sub">العب لوحدك — اختر الماب اللي تبغاه واضغط بدء لتدخل اللعبة مباشرة</div>
+  <div class="map-grid">
+    <div class="map-card sel" data-map="forest">
+      <div class="emoji">🌲</div><h3>1) غابة الرعب</h3>
+      <p>البرج العالي + البيوت المهجورة + العربة + بوابة الخروج. الوحش: آذان طويلة وأسنان كبيرة.</p>
+    </div>
+    <div class="map-card" data-map="hospital">
+      <div class="emoji">🏥</div><h3>2) المستشفى المهجور</h3>
+      <p>نفس مهام الغابة بتصميم مستشفى وضباب رمادي ووحش رمادي-أحمر.</p>
+    </div>
+    <div class="map-card" data-map="cave">
+      <div class="emoji">❄️</div><h3>3) قرية الثلج</h3>
+      <p>نفس المهام بثلج وليل ووحش أسود-أحمر متوحش.</p>
+    </div>
+  </div>
+  <div style="color:#ffcf5c;font-size:14px" id="selName">المختار: غابة الرعب</div>
+  <button class="menu-btn gold" id="btnStartSolo" style="margin-top:12px">▶ بدء — ادخل اللعبة</button>
+  <button class="back-btn" data-back>رجوع</button>
+</div>
+
+<div id="servers" class="screen hidden">
+  <h1 class="title" style="font-size:30px">🌐 السيرفرات</h1>
+  <div class="sub">ادخل على سيرفر — أو أنشئ سيرفر لحالك</div>
+  <div class="srv"><span>🌲 سيرفر الغابة #1 — 3/8 👥</span><button data-join="forest">دخول</button></div>
+  <div class="srv"><span>🏥 سيرفر المستشفى #2 — 1/8 👥</span><button data-join="hospital">دخول</button></div>
+  <div class="srv"><span>❄️ سيرفر الثلج #3 — 0/8 👥</span><button data-join="cave">دخول</button></div>
+  <button class="menu-btn gold" id="btnSoloFromSrv" style="margin-top:12px">+ إنشاء سيرفر لحالك</button>
+  <button class="back-btn" data-back>رجوع</button>
+</div>
+
+<div id="store" class="screen hidden">
+  <h1 class="title" style="font-size:30px">🛒 المتجر</h1>
+  <div class="store-box">🕐 المتجر فاضي الحين<br><br>لسه بدري — لا تضيف بيه شيء حالياً.<br>قريباً...</div>
+  <button class="back-btn" data-back>رجوع</button>
+</div>
+
+<div id="loading" class="screen hidden">⏳ جاري تحميل الماب...</div>
+
+<div id="hud" class="hidden">
+  <div id="wound"></div>
+  <div id="topbar">
+    <div class="badge">❤️ <span id="hearts">♥♥♥</span><div id="hpbar"><div id="hpfill"></div></div></div>
+    <div class="badge" id="mapName">🌲 الغابة</div>
+    <div class="badge">🔑 <span id="keyCount">0</span> | 🔫 <span id="ammo">0</span></div>
+  </div>
+  <div id="scratchTag">🩸 خمش عميق! اهرب وتخبى وعالج نفسك بالشاش 🩹</div>
+  <div id="stunTag">❄️ الوحش متجمد 35 ثانية!</div>
+  <div id="objPanel"><b>🎯 المهمة: اهرب من البوابة</b><br><span id="objList"></span></div>
+  <div id="invBar"></div>
+  <div id="msg"></div>
+  <div id="healBar">🩹 جاري لف الشاش... ابتعد عن الوحش!<div id="healProg"><div id="healFill"></div></div></div>
+  <button id="interactBtn">التقط 🤚</button>
+  <button id="healBtn">علاج 🩹</button>
+  <button id="shootBtn">إطلاق 🔫</button>
+  <button id="jumpBtn">⬆</button>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="lookArea"></div>
+</div>
+
+<div id="dead" class="screen hidden">
+  <h1 class="title" style="color:#ff4d4d">💀 مسكك الوحش!</h1>
+  <div class="sub" id="deadInfo">باقي لك محاولات</div>
+  <button class="menu-btn gold" id="btnRespawn">🔄 حاول مرة ثانية</button>
+  <button class="back-btn" id="btnDeadMenu">القائمة الرئيسية</button>
+</div>
+
+<div id="win" class="screen hidden">
+  <h1 class="title">🎉 هربت بنجاح!</h1>
+  <div class="sub" id="winInfo">فتحت البوابة وطلعت من الغابة</div>
+  <button class="menu-btn gold" id="btnWinMenu">القائمة الرئيسية</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============ الحالة ============
+const S = {
+  mode:'menu', map:'forest', hp:100, lives:3, wounded:false,
+  has:{gold:false,screw:false,card:false,hammer:false,white:false,weapon:false},
+  ammo:0, stun:0, healing:0, healActive:false,
+  towerOpen:false, woodBroken:false, laserOff:false, cardUsed:false, panelOpen:false, gateOpen:false,
+  playerPos:new THREE.Vector3(0,0,8), yaw:Math.PI, pitch:0,
+  keys:{}, joyX:0, joyY:0, interacting:null, nearGate:false, nearTop:false, nearBot:false
+};
+const MAPNAMES={forest:'🌲 الغابة',hospital:'🏥 المستشفى',cave:'❄️ الثلج'};
+let scene,camera,renderer,player,monster,clock;
+let trees=[],houses=[],items={},gate,laserMesh,towerTop={x:-60,z:0},cartPos={x:60,z:0},housePos=[{x:10,z:-60},{x:-12,z:-66},{x:30,z:-58}];
+let mHpFlash=0;
+
+// ============ واجهات ============
+const $=id=>document.getElementById(id);
+function show(id){['menu','create','servers','store','loading'].forEach(s=>$(s).classList.add('hidden'));if(id)$(id).classList.remove('hidden');}
+document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>show('menu'));
+$('btnCreate').onclick=()=>show('create');
+$('btnServers').onclick=()=>show('servers');
+$('btnStore').onclick=()=>show('store');
+$('btnSoloFromSrv').onclick=()=>show('create');
+document.querySelectorAll('.map-card').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.map-card').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');
+  S.map=c.dataset.map;$('selName').textContent='المختار: '+c.querySelector('h3').textContent;
+});
+$('btnStartSolo').onclick=()=>startGame(S.map);
+document.querySelectorAll('[data-join]').forEach(b=>b.onclick=()=>startGame(b.dataset.join));
+$('btnRespawn').onclick=()=>{ $('dead').classList.add('hidden'); respawn(); };
+$('btnDeadMenu').onclick=()=>{ $('dead').classList.add('hidden'); toMenu(); };
+$('btnWinMenu').onclick=()=>{ $('win').classList.add('hidden'); toMenu(); };
+function toMenu(){S.mode='menu';$('hud').classList.add('hidden');show('menu');if(renderer)renderer.setAnimationLoop(null);}
+function msg(t,ms=2600){const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(m._t);m._t=setTimeout(()=>m.style.display='none',ms);}
+function toastObj(){const o=[];if(!S.has.gold)o.push('🗝️ المفتاح الذهبي من الطاولة المكسورة');if(!S.towerOpen)o.push('🗼 افتح البرج بالمفتاح الذهبي');else if(!S.has.weapon)o.push('🔫 خذ السلاح من خزنة البرج');if(!S.has.screw)o.push('🪛 مفك من البيوت');if(!S.has.card)o.push('💳 بطاقة من البيوت');if(!S.has.hammer)o.push('🔨 مطرقة من العربة');if(!S.has.white)o.push('🤍 المفتاح الأبيض من خزنة العربة');if(!S.gateOpen)o.push('🚪 روح بوابة الخروج الجنوبية');else o.push('✅ اهرب!');$('objList').innerHTML=o.slice(0,5).join('<br>');$('keyCount').textContent=Object.values(S.has).filter(Boolean).length;$('ammo').textContent=S.ammo;
+const inv=[['gold','🗝️ ذهبي'],['weapon','🔫 سلاح'],['screw','🪛 مفك'],['card','💳 بطاقة'],['hammer','🔨 مطرقة'],['white','🤍 أبيض']];
+$('invBar').innerHTML=inv.map(([k,l])=>`<div class="inv ${S.has[k]?'got':''}">${l}</div>`).join('');
+}
+
+// ============ بناء الإنسان الواقعي ============
+function skinMat(){return new THREE.MeshStandardMaterial({color:0xe8b88a,roughness:.6});}
+function buildHuman(){
+  const g=new THREE.Group();const skin=skinMat();
+  const hairM=new THREE.MeshStandardMaterial({color:0x1d130b,roughness:.9});
+  const shirtM=new THREE.MeshStandardMaterial({color:0x2b6cb0,roughness:.8});
+  const pantM=new THREE.MeshStandardMaterial({color:0x2d2d33,roughness:.9});
+  // أرجل واقعية
+  const legL=new THREE.Group(),legR=new THREE.Group();
+  [[legL,-0.13],[legR,0.13]].forEach(([leg,x])=>{
+    const thigh=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.075,0.45,10),pantM);thigh.position.y=0.675;leg.add(thigh);
+    const shin=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.06,0.42,10),skin);shin.position.y=0.26;leg.add(shin);
+    const shoe=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.09,0.26),new THREE.MeshStandardMaterial({color:0x333}));shoe.position.set(0,0.045,0.05);leg.add(shoe);
+    leg.position.x=x;leg.position.y=0;g.add(leg);
+  });
+  g.userData={legL,legR};
+  // جسم
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.21,0.18,0.62,12),shirtM);torso.position.y=1.2;g.add(torso);
+  // أيدي واقعية بأصابع
+  const armL=new THREE.Group(),armR=new THREE.Group();
+  [[armL,-0.3,1], [armR,0.3,-1]].forEach(([arm,x])=>{
+    const up=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.05,0.34,8),shirtM);up.position.y=-0.15;arm.add(up);
+    const fo=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.04,0.3,8),skin);fo.position.y=-0.45;arm.add(fo);
+    const palm=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.1,0.04),skin);palm.position.y=-0.65;arm.add(palm);
+    for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.CylinderGeometry(0.011,0.009,0.07,6),skin);f.position.set(-0.03+i*0.02,-0.73,0);arm.add(f);}
+    const th=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.01,0.05,6),skin);th.position.set(0.05,-0.66,0);th.rotation.z=0.6;arm.add(th);
+    arm.position.set(x,1.45,0);g.add(arm);
+  });
+  g.userData.armL=armL;g.userData.armR=armR;
+  // رأس واقعي: شعر + أذن + حواجب + عيون + رموش + أنف + فم
+  const head=new THREE.Group();head.position.y=1.78;
+  const skull=new THREE.Mesh(new THREE.SphereGeometry(0.16,16,14),skin);head.add(skull);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(0.165,16,12,0,Math.PI*2,0,Math.PI*0.55),hairM);hair.position.y=0.02;head.add(hair);
+  const hairBack=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.16,0.1),hairM);hairBack.position.set(0,-0.02,-0.12);head.add(hairBack);
+  [-1,1].forEach(s=>{const ear=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,8),skin);ear.position.set(s*0.16,0,0);ear.scale.set(0.5,1,0.7);head.add(ear);});
+  [-1,1].forEach(s=>{
+    const brow=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.015,0.01),new THREE.MeshStandardMaterial({color:0x140d06}));brow.position.set(s*0.06,0.055,0.15);brow.rotation.z=s*-0.15;head.add(brow);
+    const white=new THREE.Mesh(new THREE.SphereGeometry(0.028,10,8),new THREE.MeshStandardMaterial({color:0xffffff}));white.position.set(s*0.06,0.01,0.14);head.add(white);
+    const pup=new THREE.Mesh(new THREE.SphereGeometry(0.013,8,8),new THREE.MeshStandardMaterial({color:0x1a0f08}));pup.position.set(s*0.06,0.01,0.163);head.add(pup);
+    for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.004,0.004),new THREE.MeshStandardMaterial({color:0x000}));l.position.set(s*0.06-0.02+i*0.02,0.038,0.155);head.add(l);}
+  });
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.05,8),skin);nose.position.set(0,-0.03,0.16);nose.rotation.x=Math.PI/2;head.add(nose);
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.012,0.01),new THREE.MeshStandardMaterial({color:0x8a2a2a}));mouth.position.set(0,-0.08,0.15);head.add(mouth);
+  g.add(head);g.userData.head=head;
+  // خمش عميق يظهر على الجسم عند الإصابة
+  const woundM=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.12),new THREE.MeshBasicMaterial({color:0xaa0000,transparent:true,opacity:0}));
+  woundM.position.set(0,1.25,0.2);woundM.name='woundMark';g.add(woundM);
+  return g;
+}
+
+// ============ بناء وحش الغابة حسب الوصف ============
+function buildMonster(theme){
+  const g=new THREE.Group();
+  let cBase=0x141114, cPatch1=0x7a1010, cPatch2=0x4a4a4a;
+  if(theme==='hospital'){cBase=0x3a3a3a;cPatch1=0x8a1a1a;cPatch2=0x222222;}
+  if(theme==='cave'){cBase=0x0a0a0a;cPatch1=0xaa0000;cPatch2=0x333344;}
+  const skin=new THREE.MeshStandardMaterial({color:cBase,roughness:1});
+  const patch1=new THREE.MeshStandardMaterial({color:cPatch1,roughness:1});
+  const patch2=new THREE.MeshStandardMaterial({color:cPatch2,roughness:1});
+  // أرجل + أظافر رجلين طويلة
+  [-1,1].forEach(s=>{
+    const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.09,0.8,8),skin);leg.position.set(s*0.16,0.4,0);g.add(leg);
+    for(let i=0;i<3;i++){const n=new THREE.Mesh(new THREE.ConeGeometry(0.025,0.14,6),new THREE.MeshStandardMaterial({color:0xddddaa}));n.position.set(s*0.16-0.05+i*0.05,0.03,0.1);n.rotation.x=Math.PI/2.3;g.add(n);}
+  });
+  // جسم ممزق + خموش + طين
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.26,0.9,10),skin);torso.position.y=1.25;g.add(torso);
+  const p1=new THREE.Mesh(new THREE.SphereGeometry(0.2,8,6),patch1);p1.position.set(0.15,1.4,0.2);p1.scale.set(1,1.3,0.4);g.add(p1);
+  const p2=new THREE.Mesh(new THREE.SphereGeometry(0.18,8,6),patch2);p2.position.set(-0.14,1.1,0.22);p2.scale.set(1,1.2,0.4);g.add(p2);
+  // ملابس ممزقة ملوثة بالتراب
+  const ragM=new THREE.MeshStandardMaterial({color:0x5a4a2a,roughness:1});
+  for(let i=0;i<6;i++){const r=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.3),ragM);r.position.set((Math.random()-0.5)*0.5,0.95+Math.random()*0.3,0.28);r.rotation.set(0.2,(Math.random()-0.5)*0.6,0.2);g.add(r);}
+  // خدوش على الصدر
+  for(let i=0;i<3;i++){const s2=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.02,0.01),patch1);s2.position.set(0,1.2+i*0.08,0.3);s2.rotation.z=0.4;g.add(s2);}
+  // أيدي + أظافر طوال
+  const arms=[];
+  [-1,1].forEach(s=>{
+    const a=new THREE.Group();
+    const up=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.07,0.6,8),skin);up.position.y=-0.3;a.add(up);
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8),skin);hand.position.y=-0.65;a.add(hand);
+    for(let i=0;i<4;i++){const n=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.22,6),new THREE.MeshStandardMaterial({color:0xe8e0b0}));n.position.set(-0.05+i*0.033,-0.8,0.05);n.rotation.x=Math.PI; a.add(n);}
+    a.position.set(s*0.4,1.6,0);g.add(a);arms.push(a);
+  });
+  g.userData.arms=arms;
+  // رأس: آذان طويلة + سنون كبار + أنف مقصوص ينزف دم + شعر منكوش
+  const head=new THREE.Group();head.position.y=2.0;
+  const skull=new THREE.Mesh(new THREE.SphereGeometry(0.24,12,10),skin);head.add(skull);
+  [-1,1].forEach(s=>{const ear=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.55,8),skin);ear.position.set(s*0.2,0.4,0);ear.rotation.z=s*-0.35;head.add(ear);
+    const earIn=new THREE.Mesh(new THREE.ConeGeometry(0.045,0.35,6),patch1);earIn.position.set(s*0.2,0.38,0.03);earIn.rotation.z=s*-0.35;head.add(earIn);});
+  // عيون حمراء
+  [-1,1].forEach(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8),new THREE.MeshBasicMaterial({color:0xff0000}));e.position.set(s*0.1,0.05,0.2);head.add(e);});
+  // أنف مقصوص + دم
+  const noseCut=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8),patch1);noseCut.position.set(0,-0.03,0.235);noseCut.scale.set(1.2,0.7,0.6);head.add(noseCut);
+  const blood=new THREE.Mesh(new THREE.SphereGeometry(0.025,6,6),new THREE.MeshBasicMaterial({color:0xcc0000}));blood.position.set(0,-0.07,0.24);blood.name='noseblood';head.add(blood);
+  const drip=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.012,0.12,6),new THREE.MeshBasicMaterial({color:0xaa0000}));drip.position.set(0.02,-0.15,0.23);head.add(drip);
+  // سنون كبيرة بارزة + لعاب بعيد عن الأسنان
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.06,0.05),new THREE.MeshBasicMaterial({color:0x220000}));mouth.position.set(0,-0.14,0.21);head.add(mouth);
+  [-1,1].forEach(s=>{const t=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.16,6),new THREE.MeshStandardMaterial({color:0xf5eed0}));t.position.set(s*0.07,-0.2,0.22);t.rotation.x=Math.PI;head.add(t);});
+  const drool=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.01,0.18,6),new THREE.MeshBasicMaterial({color:0x88ff88,transparent:true,opacity:.7}));drool.position.set(0.12,-0.28,0.2);head.add(drool);
+  // شعر منكوش
+  for(let i=0;i<12;i++){const h=new THREE.Mesh(new THREE.ConeGeometry(0.04,0.25+Math.random()*0.2,5),new THREE.MeshStandardMaterial({color:0x0a0a0a}));const a=Math.random()*Math.PI*2;h.position.set(Math.cos(a)*0.18,0.2+Math.random()*0.1,Math.sin(a)*0.18);h.rotation.set(Math.random()-0.5,0,Math.random()-0.5);head.add(h);}
+  g.add(head);g.userData.head=head;
+  // عيون متوهجة ليلاً
+  const glow=new THREE.PointLight(0xff0000,2,8);glow.position.set(0,2,1);g.add(glow);
+  return g;
+}
+
+// ============ المفتاح الذهبي الفخم القديم ============
+function buildGoldKey(){
+  const g=new THREE.Group();
+  const gold=new THREE.MeshStandardMaterial({color:0xd4a017,metalness:.9,roughness:.35,emissive:0x442200,emissiveIntensity:.4});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.09,0.025,8,16),gold);g.add(ring);
+  const crown=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.03,6),gold);crown.position.y=0.12;g.add(crown);
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.3,8),gold);shaft.position.y=-0.22;g.add(shaft);
+  [[-0.05,-0.32],[0.05,-0.28]].forEach(([x,y])=>{const t=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.03,0.03),gold);t.position.set(x,y,0);g.add(t);});
+  const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.03),new THREE.MeshStandardMaterial({color:0xaa0000,emissive:0x550000}));gem.position.y=0.02;g.add(gem);
+  const l=new THREE.PointLight(0xffcc44,1.5,4);g.add(l);
+  g.rotation.x=0.4;return g;
+}
+
+// ============ بدء اللعبة ============
+async function startGame(map){
+  S.map=map;Object.assign(S,{hp:100,lives:3,wounded:false,has:{gold:false,screw:false,card:false,hammer:false,white:false,weapon:false},ammo:0,stun:0,towerOpen:false,woodBroken:false,laserOff:false,cardUsed:false,panelOpen:false,gateOpen:false,healing:0,healActive:false,playerPos:new THREE.Vector3(0,0,8),yaw:Math.PI,pitch:0});
+  show(null);$('loading').classList.remove('hidden');
+  await new Promise(r=>setTimeout(r,300));
+  initWorld(map);
+  $('loading').classList.add('hidden');$('hud').classList.remove('hidden');
+  // إظهار التحكم بالجوال فقط داخل اللعبة (مخفي قبل الدخول حسب الطلب)
+  if('ontouchstart' in window){$('joy').style.display='block';$('interactBtn').style.display='block';$('healBtn').style.display='block';$('jumpBtn').style.display='block';}
+  else{$('interactBtn').style.display='block';$('healBtn').style.display='block';$('shootBtn').style.display='block';}
+  S.mode='play';toastObj();$('mapName').textContent=MAPNAMES[map];
+  msg(map==='forest'?'🌲 وصلت الغابة! دور على المفتاح الذهبي فوق الطاولة المكسورة':'وصلت! دور على المفتاح الذهبي فوق الطاولة');
+  clock=new THREE.Clock();
+  renderer.setAnimationLoop(loop);
+}
+
+function initWorld(map){
+  const canvas=$('game-canvas');
+  if(renderer)renderer.dispose();
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  scene=new THREE.Scene();
+  let sky=0x0a1a12,fog=0x0a1a12,ground=0x1a3a1a;
+  if(map==='hospital'){sky=0x1a1a20;fog=0x2a2a33;ground=0x33333a;}
+  if(map==='cave'){sky=0x050510;fog=0x0a0a1a;ground=0xdde4ee;}
+  scene.background=new THREE.Color(sky);scene.fog=new THREE.Fog(fog,10,90);
+  camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,300);
+  scene.add(new THREE.HemisphereLight(0x8899aa,0x112211,0.9));
+  const moon=new THREE.DirectionalLight(0xbfd4ff,1.1);moon.position.set(20,40,10);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);
+  const groundM=new THREE.Mesh(new THREE.PlaneGeometry(240,240),new THREE.MeshStandardMaterial({color:ground,roughness:1}));
+  groundM.rotation.x=-Math.PI/2;groundM.receiveShadow=true;scene.add(groundM);
+  trees=[];houses=[];items={};
+  // طرق: صليب + دائرة (مرئية)
+  const roadM=new THREE.MeshStandardMaterial({color:map==='cave'?0xb9c2d0:0x4a3a26,roughness:1});
+  function road(w,l,x,z,ry=0){const r=new THREE.Mesh(new THREE.PlaneGeometry(w,l),roadM);r.rotation.x=-Math.PI/2;r.rotation.z=ry;r.position.set(x,0.02,z);scene.add(r);}
+  road(6,130,0,-10);road(130,6,0,0);road(6,60,0,35);
+  // دائرة العربة
+  const ring=new THREE.Mesh(new THREE.RingGeometry(28,34,32),roadM);ring.rotation.x=-Math.PI/2;ring.position.set(60,0.02,0);scene.add(ring);
+  // أشجار كثيفة (تجنب الطرق والمباني)
+  const trunkM=new THREE.MeshStandardMaterial({color:0x3a2818});
+  const leafM=new THREE.MeshStandardMaterial({color:map==='cave'?0xdff4ff:map==='hospital'?0x2a4a2a:0x1d4a1d,roughness:1});
+  function tree(x,z,s=1){const t=new THREE.Group();
+    const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.25*s,0.35*s,3*s,7),trunkM);tr.position.y=1.5*s;tr.castShadow=true;t.add(tr);
+    for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.ConeGeometry((1.6-i*0.35)*s,2.2*s,8),leafM);c.position.y=(3+i*1.4)*s;c.castShadow=true;t.add(c);}
+    t.position.set(x,0,z);scene.add(t);trees.push(t);}
+  for(let i=0;i<140;i++){const x=(Math.random()-0.5)*200,z=(Math.random()-0.5)*200;
+    if(Math.abs(x)<5||Math.abs(z)<5)continue;
+    if(Math.hypot(x,z)<8)continue;
+    if(Math.hypot(x+60,z)>8&&Math.hypot(x+60,z)<12)continue;
+    if(Math.hypot(x-60,z)<10)continue;
+    if(z<-45&&z>-80&&x>-20&&x<40)continue;
+    if(Math.hypot(x,z-62)<12)continue;
+    tree(x,z,0.8+Math.random()*0.9);}
+  // أشجار البداية حول السباون (اللي كانوا بالنص)
+  for(let a=0;a<10;a++){const an=a/10*Math.PI*2;tree(Math.cos(an)*7,Math.sin(an)*7+2,1.1);}
+  // طاولة مكسورة + المفتاح الذهبي بجانب السباون
+  const table=new THREE.Group();
+  const wood=new THREE.MeshStandardMaterial({color:0x5a3d22});
+  const top=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.1,1),wood);top.position.y=0.8;top.rotation.z=0.12;table.add(top);
+  [[-0.7,-0.4],[0.7,-0.4],[-0.7,0.4]].forEach(([x,z])=>{const l=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.8,0.1),wood);l.position.set(x,0.4,z);table.add(l);});
+  const broken=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.8,0.1),wood);broken.position.set(0.7,0.2,0.4);broken.rotation.z=1.1;table.add(broken);
+  table.position.set(2.5,0,5);table.traverse(o=>o.castShadow=true);scene.add(table);
+  const gk=buildGoldKey();gk.position.set(2.5,1.15,5);gk.name='gold';scene.add(gk);items.gold=gk;
+  addLabel(gk,'🗝️ مفتاح ذهبي قديم');
+  // بيوت خشبية مهجورة مع أثاث مهجور (شمال)
+  housePos.forEach((hp,i)=>{
+    const h=buildHouse(i);h.position.set(hp.x,0,hp.z);scene.add(h);houses.push(h);
+  });
+  // مفك + بطاقة داخل البيوت
+  mkItem('screw',0x888888,housePos[1].x+1,1,housePos[1].z,'🪛 مفك');
+  mkItem('card',0x2266ff,housePos[0].x-1,1,housePos[0].z,'💳 بطاقة الدخول');
+  // البرج العالي (غرب) — لازم مفتاح ذهبي
+  buildTower(-60,0);
+  // العربة + خزنة فيها مفتاح (شرق دائرة)
+  buildCart(60,0);
+  mkItem('hammer',0xaa5522,cartPos.x+1,1.2,cartPos.z+1,'🔨 مطرقة');
+  const wk=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.12,0.1),new THREE.MeshStandardMaterial({color:0xffffff,metalness:.6,roughness:.3}));
+  wk.position.set(cartPos.x,1.3,cartPos.z);scene.add(wk);items.white=wk;wk.visible=false;addLabel(wk,'🤍 مفتاح أبيض');
+  // بوابة الخروج (جنوب) + خشب + ليزر أحمر
+  buildGate(0,62);
+  // اللاعب الواقعي
+  player=buildHuman();player.position.copy(S.playerPos);scene.add(player);
+  // الوحش
+  monster=buildMonster(map);monster.position.set(20,0,-20);scene.add(monster);
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+}
+function addLabel(obj,text){/* لافتة عائمة */
+  const c=document.createElement('div');c.textContent=text;
+  c.style.cssText='position:fixed;color:#ffedaa;font-size:12px;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:8px;pointer-events:none;z-index:4;display:none';
+  document.body.appendChild(c);obj.userData.label=c;obj.userData.labelText=text;
+}
+function mkItem(key,color,x,y,z,label){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3),new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.3}));
+  m.position.set(x,y,z);scene.add(m);items[key]=m;addLabel(m,label);
+}
+function buildHouse(i){
+  const h=new THREE.Group();const wm=new THREE.MeshStandardMaterial({color:0x4d3a24,roughness:1});
+  const base=new THREE.Mesh(new THREE.BoxGeometry(6,3,5),wm);base.position.y=1.5;base.castShadow=true;h.add(base);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(4.5,2,4),new THREE.MeshStandardMaterial({color:0x2a1d10}));roof.position.y=4;roof.rotation.y=Math.PI/4;h.add(roof);
+  const door=new THREE.Mesh(new THREE.PlaneGeometry(1.1,2),new THREE.MeshBasicMaterial({color:0x000}));door.position.set(0,1,-2.51);door.rotation.y=Math.PI;h.add(door);
+  // أثاث مهجور: سرير + كرسي مقلوب + خزانة مايلة
+  const fm=new THREE.MeshStandardMaterial({color:0x3a3a3a});
+  const bed=new THREE.Mesh(new THREE.BoxGeometry(2,0.4,1),fm);bed.position.set(-1.5,0.5,3.5);h.add(bed);
+  const chair=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.8,0.5),fm);chair.position.set(1.5,0.4,3.5);chair.rotation.z=2.6;h.add(chair);
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(1,2,0.5),fm);cab.position.set(0,1,3.8);cab.rotation.z=0.25;h.add(cab);
+  // شباك مكسور
+  const win=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({color:0x111122}));win.position.set(2,1.8,-2.51);win.rotation.y=Math.PI;h.add(win);
+  return h;
+}
+function buildTower(x,z){
+  const g=new THREE.Group();const sm=new THREE.MeshStandardMaterial({color:0x555055,roughness:.9});
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(3,3.5,14,10),sm);t.position.y=7;t.castShadow=true;g.add(t);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(4,4,1.5,10),new THREE.MeshStandardMaterial({color:0x3a3a40}));top.position.y=14.5;g.add(top);
+  const rail=new THREE.Mesh(new THREE.TorusGeometry(3.8,0.1,6,16),new THREE.MeshStandardMaterial({color:0x222}));rail.position.y=15.6;rail.rotation.x=Math.PI/2;g.add(rail);
+  // باب البرج (يحتاج ذهبي)
+  const door=new THREE.Mesh(new THREE.BoxGeometry(1.6,2.6,0.2),new THREE.MeshStandardMaterial({color:0x6a4a10,metalness:.5,roughness:.5}));door.position.set(0,1.3,3.4);g.add(door);g.userData.door=door;
+  // خزنة + سلاح فوق البرج
+  const safe=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x22262e,metalness:.7,roughness:.4}));safe.position.set(0,15.8,0);g.add(safe);g.userData.safe=safe;
+  const gun=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.7),new THREE.MeshStandardMaterial({color:0x222}));gun.add(b);
+  const grip=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.25,0.12),new THREE.MeshStandardMaterial({color:0x6a3a10}));grip.position.set(0,-0.15,0.2);gun.add(grip);
+  gun.position.set(0,16.6,0);gun.rotation.y=0.6;g.add(gun);gun.visible=false;items.weapon=gun;addLabel(gun,'🔫 سلاح التجمد (3 طلقات)');
+  g.position.set(x,0,z);scene.add(g);window._tower=g;
+  // نقطة صعود (سلم): تفاعل ينقلك فوق
+}
+function buildCart(x,z){
+  const g=new THREE.Group();const wm=new THREE.MeshStandardMaterial({color:0x5a4028});
+  const box=new THREE.Mesh(new THREE.BoxGeometry(3,1.2,2),wm);box.position.y=1.2;box.castShadow=true;g.add(box);
+  const wg=new THREE.CylinderGeometry(0.6,0.6,0.2,12);
+  const wm2=new THREE.MeshStandardMaterial({color:0x2a1d10});
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>{const w=new THREE.Mesh(wg,wm2);w.rotation.x=Math.PI/2;w.position.set(a*1.2,0.6,b*1.1);g.add(w);});
+  const safe=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.9,0.9),new THREE.MeshStandardMaterial({color:0x333944,metalness:.7,roughness:.4}));safe.position.set(0,2.2,0);g.add(safe);
+  g.position.set(x,0,z);scene.add(g);
+}
+function buildGate(x,z){
+  const g=new THREE.Group();
+  const pm=new THREE.MeshStandardMaterial({color:0x3a3f45,metalness:.6,roughness:.5});
+  [-2.5,2.5].forEach(px=>{const p=new THREE.Mesh(new THREE.BoxGeometry(0.6,5,0.6),pm);p.position.set(px,2.5,0);p.castShadow=true;g.add(p);});
+  const top=new THREE.Mesh(new THREE.BoxGeometry(5.6,0.8,0.6),pm);top.position.set(0,5,0);g.add(top);
+  const door=new THREE.Mesh(new THREE.BoxGeometry(4.4,4.2,0.3),new THREE.MeshStandardMaterial({color:0x1c2a3a,metalness:.5,roughness:.6}));door.position.set(0,2.1,0);g.add(door);g.userData.door=door;
+  // خشب مكسر على الباب (يحتاج مطرقة)
+  const wood=new THREE.Mesh(new THREE.BoxGeometry(4.6,0.5,0.4),new THREE.MeshStandardMaterial({color:0x6a4a26}));wood.position.set(0,2,0.4);wood.rotation.z=0.15;g.add(wood);g.userData.wood=wood;
+  // ليزر أحمر (يحتاج مفك)
+  laserMesh=new THREE.Mesh(new THREE.BoxGeometry(4.4,0.08,0.08),new THREE.MeshBasicMaterial({color:0xff0000}));laserMesh.position.set(0,1.2,0.5);g.add(laserMesh);
+  const lg=new THREE.PointLight(0xff0000,2,8);lg.position.set(0,1.2,1);g.add(lg);g.userData.laserLight=lg;
+  // قفل أبيض + قارئ بطاقة
+  const lock=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.2),new THREE.MeshStandardMaterial({color:0xffffff}));lock.position.set(1.6,2.2,0.4);g.add(lock);
+  const reader=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.15),new THREE.MeshStandardMaterial({color:0x2266ff,emissive:0x0033aa}));reader.position.set(-1.6,2.2,0.4);g.add(reader);
+  g.position.set(x,0,z);scene.add(g);gate=g;
+}
+
+// ============ تحكم ============
+addEventListener('keydown',e=>{S.keys[e.code]=true;if(e.code==='KeyE')doInteract();if(e.code==='KeyH')tryHeal();if(e.code==='KeyF')tryShoot();});
+addEventListener('keyup',e=>S.keys[e.code]=false);
+// جويستيك + نظر باللمس
+(function(){
+  const joy=$('joy'),knob=$('knob');let id=null;
+  joy.addEventListener('touchstart',e=>{id=e.changedTouches[0].identifier;},{passive:true});
+  addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===id){const r=joy.getBoundingClientRect();let dx=t.clientX-(r.left+r.width/2),dy=t.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy)||1,cl=Math.min(m,44);dx=dx/m*cl;dy=dy/m*cl;knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;S.joyX=dx/44;S.joyY=dy/44;}
+    }},{passive:true});
+  addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===id){id=null;knob.style.transform='translate(-50%,-50%)';S.joyX=0;S.joyY=0;}}},{passive:true});
+  // نظر: السحب على النصف الأيسر
+  let lid=null,lx=0,ly=0;
+  const la=$('lookArea');
+  la.addEventListener('touchstart',e=>{const t=e.changedTouches[0];lid=t.identifier;lx=t.clientX;ly=t.clientY;},{passive:true});
+  addEventListener('touchmove',e=>{for(const t of e.changedTouches){if(t.identifier===lid){S.yaw-=(t.clientX-lx)*0.008;S.pitch=Math.max(-1.2,Math.min(1.2,S.pitch-(t.clientY-ly)*0.006));lx=t.clientX;ly=t.clientY;}}},{passive:true});
+  addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===lid)lid=null;}},{passive:true});
+})();
+// ماوس للكمبيوتر
+(function(){let d=false,lx=0,ly=0;addEventListener('mousedown',e=>{if(S.mode==='play'&&e.target.tagName==='CANVAS'){d=true;lx=e.clientX;ly=e.clientY;}});addEventListener('mousemove',e=>{if(d){S.yaw-=(e.clientX-lx)*0.005;S.pitch=Math.max(-1.2,Math.min(1.2,S.pitch-(e.clientY-ly)*0.004));lx=e.clientX;ly=e.clientY;}});addEventListener('mouseup',()=>d=false);})();
+$('interactBtn').onclick=()=>doInteract();
+$('healBtn').onclick=()=>tryHeal();
+$('shootBtn').onclick=()=>tryShoot();
+$('jumpBtn').onclick=()=>{S.vy=5;};
+S.vy=0;S.grounded=true;
+
+function nearest(list,maxD){let best=null,bd=maxD;for(const k of list){const o=items[k];if(!o||!o.visible)continue;const d=o.position.distanceTo(player.position);if(d<bd){bd=d;best=k;}}return best?{k:best,d:bd}:null;}
+function doInteract(){
+  if(S.mode!=='play')return;
+  const p=player.position;
+  // 1) التقاط أغراض قريبة
+  const n=nearest(['gold','screw','card','hammer','white','weapon'],3.2);
+  if(n){
+    const k=n.k;
+    if(k==='weapon'){S.has.weapon=true;S.ammo=3;$('shootBtn').style.display='block';items.weapon.visible=false;msg('🔫 أخذت سلاح التجمد! 3 طلقات — كل طلقة تجمد الوحش 35 ثانية');}
+    else{S.has[k]=true;items[k].visible=false;if(items[k].userData.label)items[k].userData.label.style.display='none';
+      msg({gold:'🗝️ مفتاح ذهبي قديم فخم! روح افتح البرج العالي (غرب)',screw:'🪛 مفك! يطفي الليزر ويفك لوحة البوابة',card:'💳 بطاقة! للبوابة',hammer:'🔨 مطرقة! تكسر خشب البوابة',white:'🤍 مفتاح أبيض! يفتح قفل البوابة'}[k]);}
+    toastObj();return;
+  }
+  // 2) باب البرج
+  if(p.distanceTo(new THREE.Vector3(-60,0,3.5))<4){
+    if(!S.towerOpen){if(S.has.gold){S.towerOpen=true;window._tower.userData.door.visible=false;msg('🗼 فتحت البرج! اصعد فوق وخذ السلاح من الخزنة (اضغط هنا مرة ثانية للصعود)');}else msg('🔒 البرج مقفل — لازم المفتاح الذهبي من الطاولة المكسورة');}
+    else{ // صعود/نزول
+      if(p.y<5){player.position.set(-60,15.5,0);S.playerPos.set(-60,15.5,0);items.weapon.visible=!S.has.weapon;msg('⬆️ طلعت فوق البرج! افتح الخزنة وخذ السلاح');}
+      else{player.position.set(-60,0,6);S.playerPos.set(-60,0,6);msg('⬇️ نزلت من البرج');}
+    }
+    return;
+  }
+  // فوق البرج: خزنة السلاح
+  if(p.distanceTo(new THREE.Vector3(-60,15.5,0))<3&&!S.has.weapon){S.has.weapon=true;S.ammo=3;$('shootBtn').style.display='block';items.weapon.visible=false;msg('🔫 حصلت السلاح! 3 طلقات تجمد الوحش 35 ثانية');toastObj();return;}
+  // 3) خزنة العربة: تطلع المفتاح الأبيض
+  if(p.distanceTo(new THREE.Vector3(60,0,0))<4&&!S.has.white){S.has.white=true;if(items.white){items.white.visible=false;}msg('🤍 حصلت المفتاح الأبيض من خزنة العربة!');toastObj();return;}
+  // 4) البوابة
+  if(p.distanceTo(new THREE.Vector3(0,0,62))<5){
+    if(!S.woodBroken){if(S.has.hammer){S.woodBroken=true;gate.userData.wood.visible=false;msg('🔨 كسرت الخشب عن البوابة!');}else{msg('🪵 البوابة مسكرة بخشب — لازم مطرقة من العربة');return;}}
+    if(!S.laserOff){if(S.has.screw){S.laserOff=true;laserMesh.visible=false;gate.userData.laserLight.visible=false;msg('🪛 طفيت الليزر الأحمر بالمفك!');}else{msg('🔴 ليزر أحمر! لازم مفك من البيوت المهجورة');return;}}
+    if(!S.cardUsed){if(S.has.card){S.cardUsed=true;msg('💳 سحبت البطاقة! باقي فك اللوحة بالمفك');}else{msg('💳 لازم بطاقة من البيوت');return;}}
+    if(!S.panelOpen){if(S.has.screw){S.panelOpen=true;msg('🪛 فكيت اللوحة! باقي القفل الأبيض');}else{msg('🔩 لازم مفك لفك اللوحة');return;}}
+    if(!S.gateOpen){if(S.has.white){S.gateOpen=true;gate.userData.door.visible=false;winGame();}else msg('🔒 باقي المفتاح الأبيض من خزنة العربة');}
+    return;
+  }
+  msg('🔍 ما فيه شيء قريب هنا — اتبع المهام فوق');
+}
+function tryHeal(){
+  if(S.mode!=='play'||!S.wounded||S.healActive)return;
+  const md=monster.position.distanceTo(player.position);
+  if(md<15){msg('⚠️ الوحش قريب! انهزم منه وتخبى بمكان بعيد أولاً ثم عالج نفسك');return;}
+  S.healActive=true;S.healing=0;$('healBar').style.display='block';
+  msg('🩹 جاري لف الشاش على الخمش العميق...');
+}
+function tryShoot(){
+  if(S.mode!=='play'||!S.has.weapon||S.ammo<=0){if(S.ammo<=0&&S.has.weapon)msg('🔫 خلصت الطلقات!');return;}
+  const d=monster.position.distanceTo(player.position);
+  if(d>40){msg('🎯 الوحش بعيد — قرب أكثر');return;}
+  S.ammo--;S.stun=35;$('shootBtn').style.display=S.ammo>0?'block':'none';
+  $('stunTag').style.display='block';toastObj();
+  msg(`❄️ جمدت الوحش 35 ثانية! باقي ${S.ammo} طلقات`);
+}
+
+// ============ إصابة + موت + فوز ============
+function hurtPlayer(){
+  if(S.stun>0||S.mode!=='play')return;
+  S.hp-=34;S.wounded=true;mHpFlash=1;
+  $('wound').classList.add('on');$('scratchTag').style.display='block';
+  player.getObjectByName('woundMark').material.opacity=0.9;
+  if(navigator.vibrate)navigator.vibrate(200);
+  msg('🩸 خمشك الوحش خمش عميق! اهرب وتخبى بعيد وعالج نفسك 🩹');
+  if(S.hp<=0){
+    S.lives--;$('hearts').textContent='♥'.repeat(Math.max(0,S.lives))+'♡'.repeat(3-Math.max(0,S.lives));
+    if(S.lives<=0){S.mode='dead';renderer.setAnimationLoop(null);$('hud').classList.add('hidden');$('win').classList.add('hidden');
+      const d=$('dead');d.classList.remove('hidden');$('deadInfo').textContent='خلصت محاولاتك الثلاث! الوحش مسكك.';$('btnRespawn').style.display='none';}
+    else{S.mode='dead';renderer.setAnimationLoop(null);$('hud').classList.add('hidden');
+      const d=$('dead');d.classList.remove('hidden');$('deadInfo').textContent=`باقي لك ${S.lives} ${S.lives===2?'محاولتين':'محاولة'} — الوحش خمشك بعمق!`; $('btnRespawn').style.display='block';}
+  }
+}
+function respawn(){
+  S.hp=100;S.wounded=false;S.healActive=false;
+  $('wound').classList.remove('on');$('scratchTag').style.display='none';$('healBar').style.display='none';
+  player.getObjectByName('woundMark').material.opacity=0;
+  player.position.set(0,0,8);S.playerPos.set(0,0,8);
+  monster.position.set(20,0,-20);
+  S.mode='play';$('hud').classList.remove('hidden');
+  renderer.setAnimationLoop(loop);toastObj();
+}
+function winGame(){
+  S.mode='win';renderer.setAnimationLoop(null);$('hud').classList.add('hidden');
+  $('win').classList.remove('hidden');$('winInfo').textContent=`هربت من ${MAPNAMES[S.map]}! استخدمت المفك والبطاقة والمطرقة والمفتاح الأبيض 🏆`;
+}
+
+// ============ الحلقة ============
+const tmpV=new THREE.Vector3();
+function loop(){
+  const dt=Math.min(clock.getDelta(),0.05);
+  const t=clock.elapsedTime;
+  // ستun
+  if(S.stun>0){S.stun-=dt;$('stunTag').textContent=`❄️ الوحش متجمد ${Math.ceil(S.stun)} ثانية!`;$('stunTag').style.display='block';if(S.stun<=0)$('stunTag').style.display='none';}
+  // --- حركة اللاعب ---
+  let mx=0,mz=0;
+  if(S.keys.KeyW||S.keys.ArrowUp)mz-=1;if(S.keys.KeyS||S.keys.ArrowDown)mz+=1;
+  if(S.keys.KeyA||S.keys.ArrowLeft)mx-=1;if(S.keys.KeyD||S.keys.ArrowRight)mx+=1;
+  mx+=S.joyX;mz+=S.joyY;
+  const len=Math.hypot(mx,mz);if(len>1){mx/=len;mz/=len;}
+  const sp=(S.wounded?3.2:5.2)*(S.keys.ShiftLeft?1.5:1);
+  const sin=Math.sin(S.yaw),cos=Math.cos(S.yaw);
+  const wx=(mx*cos-mz*sin)*sp*dt, wz=(mx*sin+mz*cos)*sp*dt;
+  player.position.x=Math.max(-110,Math.min(110,player.position.x+wx));
+  player.position.z=Math.max(-110,Math.min(110,player.position.z+wz));
+  // جاذبية + قفز + سطح البرج
+  const onTower=Math.hypot(player.position.x+60,player.position.z)<4.5&&player.position.y>5;
+  const gy=onTower?15.5:0;
+  S.vy-=18*dt;player.position.y+=S.vy*dt;
+  if(player.position.y<=gy){player.position.y=gy;S.vy=0;}
+  player.rotation.y=S.yaw+Math.PI;
+  // أنيميشن مشي
+  const walking=len>0.1;
+  const sw=walking?Math.sin(t*10)*0.5:0;
+  player.userData.legL.rotation.x=sw;player.userData.legR.rotation.x=-sw;
+  player.userData.armL.rotation.x=-sw*0.7;player.userData.armR.rotation.x=sw*0.7;
+  // علاج
+  if(S.healActive){
+    const md=monster.position.distanceTo(player.position);
+    if(md<12){S.healActive=false;$('healBar').style.display='none';msg('⚠️ الوحش لحقك! اهرب أولاً');}
+    else{S.healing+=dt/3;$('healFill').style.width=(S.healing*100)+'%';
+      if(S.healing>=1){S.healActive=false;S.wounded=false;S.hp=100;$('healBar').style.display='none';$('wound').classList.remove('on');$('scratchTag').style.display='none';player.getObjectByName('woundMark').material.opacity=0;msg('✅ عالجت الخمش ولفيت الشاش — رجعت بكامل قوتك!');}}
+  }
+  $('hpfill').style.width=S.hp+'%';
+  // --- الوحش يطارد ---
+  const m=monster.position,pl=player.position;
+  const sameLevel=Math.abs(m.y-pl.y)<4;
+  if(S.stun<=0&&sameLevel){
+    tmpV.set(pl.x-m.x,0,pl.z-m.z);const d=tmpV.length();tmpV.normalize();
+    const msp=d>25?4.4:3.9; // أسرع من بعيد، أبطأ قريب عشان تقدر تهرب وتتخبى
+    m.x+=tmpV.x*msp*dt;m.z+=tmpV.z*msp*dt;
+    monster.rotation.y=Math.atan2(tmpV.x,tmpV.z);
+    monster.userData.head.rotation.y=Math.sin(t*3)*0.3;
+    monster.userData.arms[0].rotation.x=Math.sin(t*6)*0.8-0.4;
+    monster.userData.arms[1].rotation.x=-Math.sin(t*6)*0.8-0.4;
+    monster.position.y=Math.abs(Math.sin(t*7))*0.08;
+    if(monster.userData.glow)monster.children.forEach(c=>{});
+    if(d<2.2&&sameLevel){if(!S._cd||t-S._cd>1.2){S._cd=t;hurtPlayer();}}
+  }else{monster.userData.arms[0].rotation.x=-0.2;monster.userData.arms[1].rotation.x=-0.2;}
+  // دم الأنف ينبض
+  const nb=monster.getObjectByName('noseblood');if(nb)nb.scale.setScalar(1+Math.sin(t*8)*0.2);
+  // مفتاح ذهبي يلمع ويدور
+  if(items.gold&&items.gold.visible){items.gold.rotation.y+=dt*2;items.gold.position.y=1.15+Math.sin(t*3)*0.08;}
+  Object.values(items).forEach(o=>{if(o&&o.visible&&o.userData.label){tmpV.copy(o.position);tmpV.y+=0.8;tmpV.project(camera);const vis=tmpV.z<1&&o.position.distanceTo(player.position)<14;const el=o.userData.label;el.style.display=vis?'block':'none';if(vis){el.style.left=((tmpV.x*0.5+0.5)*innerWidth-40)+'px';el.style.top=((-tmpV.y*0.5+0.5)*innerHeight)+'px';}}});
+  // زر التفاعل يظهر قرب شيء
+  const showI=S.mode==='play'&&(nearest(['gold','screw','card','hammer','white','weapon'],3.2)||player.position.distanceTo(new THREE.Vector3(-60,0,3.5))<4||player.position.distanceTo(new THREE.Vector3(60,0,0))<4||player.position.distanceTo(new THREE.Vector3(0,0,62))<5||player.position.distanceTo(new THREE.Vector3(-60,15.5,0))<3);
+  if(!('ontouchstart' in window))$('interactBtn').style.display=showI?'block':'none';
+  else $('interactBtn').style.display='block';
+  $('healBtn').style.display=S.wounded?'block':('ontouchstart' in window?'block':'none');
+  // --- كاميرا ثالث شخص ---
+  const cd=6.5,ch=3.2;
+  const cx=pl.x-Math.sin(S.yaw)*cos(S.pitch)*cd, cz=pl.z-Math.cos(S.yaw)*cos(S.pitch)*cd;
+  const cy=pl.y+ch+Math.sin(S.pitch)*cd;
+  camera.position.lerp(tmpV.set(cx,Math.max(1,cy),cz),0.25);
+  camera.lookAt(pl.x,pl.y+1.6,pl.z);
+  renderer.render(scene,camera);
+}
+show('menu');
+</script>
+</body>
+</html>
