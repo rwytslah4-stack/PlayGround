@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>أكواخ الغابة المهجورة | Abandoned Forest Huts</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0b1410;font-family:'Segoe UI',Tahoma,Arial,sans-serif;user-select:none}
+  #c{position:fixed;inset:0;display:block}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+  #topbar{position:absolute;top:0;right:0;left:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px;gap:8px}
+  #title{background:rgba(10,20,14,.72);border:1px solid #3a5a40;color:#e8f5d6;padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.5;max-width:62%;backdrop-filter:blur(6px)}
+  #title b{color:#ffd75e}
+  #keys{background:rgba(10,20,14,.72);border:1px solid #3a5a40;color:#fff;padding:8px 10px;border-radius:12px;font-size:12px;min-width:150px;max-width:36%;backdrop-filter:blur(6px)}
+  #keys h4{font-size:12px;color:#ffd75e;margin-bottom:4px}
+  #keys .k{display:flex;align-items:center;gap:6px;background:#1e3326;margin:3px 0;padding:4px 6px;border-radius:8px;border:1px solid #4a7a52}
+  #keys .k span.dot{width:12px;height:12px;border-radius:50%;background:gold;box-shadow:0 0 6px gold;flex-shrink:0}
+  #msg{position:absolute;top:86px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;text-align:center;max-width:88%;border:1px solid #ffd75e;display:none}
+  #interactTip{position:absolute;bottom:148px;left:50%;transform:translateX(-50%);background:rgba(255,215,94,.95);color:#222;padding:8px 14px;border-radius:20px;font-size:14px;font-weight:700;display:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+  #controls{position:absolute;bottom:0;right:0;left:0;display:flex;justify-content:space-between;align-items:flex-end;padding:14px;pointer-events:none;direction:ltr}
+  #joy{width:124px;height:124px;border-radius:50%;background:rgba(255,255,255,.10);border:2px solid rgba(255,255,255,.35);position:relative;pointer-events:auto;touch-action:none}
+  #stick{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.55);position:absolute;top:34px;left:34px;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+  #btns{display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:auto}
+  #btnAct{width:92px;height:92px;border-radius:50%;background:#ffbf2a;border:3px solid #fff;color:#222;font-weight:900;font-size:15px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  #btnAct:active{transform:scale(.94)}
+  #btnJump{width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid #fff;color:#fff;font-weight:700}
+  #start{position:fixed;inset:0;background:radial-gradient(ellipse at center,#1a3324 0%,#060d09 75%);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+  #card{background:#101f16;border:1px solid #3a5a40;border-radius:18px;padding:22px;max-width:480px;width:100%;color:#eaf5df;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  #card h1{font-size:22px;margin-bottom:8px;color:#ffd75e}
+  #card p{font-size:14px;line-height:1.9;color:#cfe3c0}
+  #card .names{background:#0a1510;border:1px dashed #5a8a60;border-radius:10px;padding:10px;margin:12px 0;font-size:13px;line-height:2}
+  #card button{margin-top:10px;background:#ffbf2a;border:none;color:#222;font-weight:900;font-size:17px;padding:14px 28px;border-radius:14px;width:100%}
+  #lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(20,12,8,.92);border:2px solid #ff5a5a;color:#fff;padding:16px;border-radius:14px;text-align:center;display:none;pointer-events:auto;min-width:240px}
+  #lock h3{color:#ff8a8a;margin-bottom:6px}
+  #lock button{margin:6px 4px;padding:10px 16px;border-radius:10px;border:none;font-weight:800}
+  #cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:22px;opacity:.7}
+  #toast{position:absolute;bottom:250px;left:50%;transform:translateX(-50%);background:#1d5c2d;color:#fff;padding:8px 14px;border-radius:10px;display:none;font-size:13px}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="topbar">
+    <div id="title">🌲 <b>أكواخ الغابة المهجورة</b><br>افتح الكوخ الأول واجمع المفاتيح بالترتيب!</div>
+    <div id="keys"><h4>🎒 مفاتيحي (<span id="kc">0</span>/3)</h4><div id="klist"><div style="opacity:.6">لا تملك مفاتيح بعد</div></div></div>
+  </div>
+  <div id="msg"></div>
+  <div id="interactTip"></div>
+  <div id="cross">+</div>
+  <div id="toast"></div>
+  <div id="lock">
+    <h3>🔒 باب مقفل</h3>
+    <div id="lockTxt" style="font-size:14px;margin:6px 0"></div>
+    <button id="btnUnlock" style="background:#4caf50;color:#fff">🗝️ فك القفل</button>
+    <button id="btnClose" style="background:#555;color:#fff">إغلاق</button>
+  </div>
+  <div id="controls">
+    <div id="joy"><div id="stick"></div></div>
+    <div id="btns">
+      <button id="btnAct">تفاعل<br>👆</button>
+      <button id="btnJump">قفز</button>
+    </div>
+  </div>
+</div>
+<div id="start">
+  <div id="card">
+    <h1>🌲 أكواخ الغابة المهجورة 🏚️</h1>
+    <p>في قلب الغابة 4 أكواخ صغيرة مهجورة، كل كوخ غرفة واحدة فيها:<br>🚪 باب خشبي بقفل • 🛏️ تخت (سرير) قديم • 🍂 وسخ وتراب • 🪑 طاولة عليها مفتاح</p>
+    <div class="names">
+      1️⃣ <b>كوخ الحطّاب</b> — مفتوح ✅ وبداخله <b style="color:gold">مفتاح كوخ الصيّاد</b><br>
+      2️⃣ <b>كوخ الصيّاد</b> — مقفل 🔒 يحتاج مفتاحه<br>
+      3️⃣ <b>كوخ العجوز</b> — مقفل 🔒 يحتاج مفتاحه<br>
+      4️⃣ <b>كوخ البومة</b> — مقفل 🔒 وفيه الكنز 👑<br>
+      <span style="opacity:.75">⚠️ المفاتيح كلها ذهبية نفس اللون لكن <b>الأسماء مختلفة</b> — انتبه للاسم!</span>
+    </div>
+    <p style="font-size:12px">📱 جوال/تابلت: عصا التحكم يسار + اسحب يمين الشاشة للنظر + زر تفاعل<br>💻 كمبيوتر: WASD + ماوس + E للتفاعل</p>
+    <button id="play">🎮 ابدأ المغامرة</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0a1812);
+scene.fog=new THREE.Fog(0x0a1812,18,90);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,300);
+const hemi=new THREE.HemisphereLight(0xbfe8c0,0x2a2018,.85);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffe9b0,1.1);sun.position.set(30,45,20);sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;scene.add(sun);
+const moon=new THREE.DirectionalLight(0x6a8aff,.25);moon.position.set(-20,30,-30);scene.add(moon);
+
+// ======== الأرض والغابة ========
+const groundTexC=document.createElement('canvas');groundTexC.width=groundTexC.height=256;
+{const g=groundTexC.getContext('2d');g.fillStyle='#243d24';g.fillRect(0,0,256,256);
+for(let i=0;i<900;i++){g.fillStyle=`rgb(${20+Math.random()*40|0},${55+Math.random()*45|0},${20+Math.random()*25|0})`;g.fillRect(Math.random()*256,Math.random()*256,2+Math.random()*4,2+Math.random()*4);}}
+const groundTex=new THREE.CanvasTexture(groundTexC);groundTex.wrapS=groundTex.wrapT=THREE.RepeatWrapping;groundTex.repeat.set(24,24);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(220,220),new THREE.MeshStandardMaterial({map:groundTex,roughness:1}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+// ممرات ترابية بين الأكواخ
+function dirtPath(x1,z1,x2,z2){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(2.4,len),new THREE.MeshStandardMaterial({color:0x5a4630,roughness:1,transparent:true,opacity:.85}));
+  m.rotation.x=-Math.PI/2;m.rotation.z=Math.atan2(dx,dz)+Math.PI;
+  m.position.set((x1+x2)/2,.02,(z1+z2)/2);scene.add(m);
+}
+const HUTS=[
+  {id:'hattab', name:'كوخ الحطّاب', keyName:null,           needKey:null,               pos:[-18,-14], rot:0.5,  open:true, gives:'مفتاح كوخ الصيّاد'},
+  {id:'sayyad', name:'كوخ الصيّاد', keyName:'مفتاح كوخ الصيّاد', needKey:'مفتاح كوخ الصيّاد', pos:[14,-16],  rot:-0.4, open:false, gives:'مفتاح كوخ العجوز'},
+  {id:'ajouz',  name:'كوخ العجوز',  keyName:'مفتاح كوخ العجوز',  needKey:'مفتاح كوخ العجوز',  pos:[-14,16],  rot:-0.6, open:false, gives:'مفتاح كوخ البومة'},
+  {id:'buma',   name:'كوخ البومة',  keyName:'مفتاح كوخ البومة',  needKey:'مفتاح كوخ البومة',  pos:[16,16],   rot:0.6,  open:false, gives:'👑 الكنز'},
+];
+dirtPath(0,0,-18,-14);dirtPath(0,0,14,-16);dirtPath(-18,-14,-14,16);dirtPath(14,-16,16,16);dirtPath(-14,16,16,16);
+// أشجار
+const trunkMat=new THREE.MeshStandardMaterial({color:0x4a3220,roughness:1});
+const leafMat1=new THREE.MeshStandardMaterial({color:0x1d4d22,roughness:1});
+const leafMat2=new THREE.MeshStandardMaterial({color:0x2a6a2e,roughness:1});
+const colliders=[]; // {x,z,r}
+function tree(x,z,s=1){
+  const g=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18*s,.28*s,2.2*s,7),trunkMat);
+  trunk.position.y=1.1*s;trunk.castShadow=true;g.add(trunk);
+  for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.ConeGeometry((1.6-i*.35)*s,1.8*s,8),i%2?leafMat2:leafMat1);
+    c.position.y=(2.2+i*1.1)*s;c.castShadow=true;g.add(c);}
+  g.position.set(x,0,z);g.rotation.y=Math.random()*6;scene.add(g);
+  colliders.push({x,z,r:.5*s});
+}
+for(let i=0;i<170;i++){
+  const x=(Math.random()-.5)*190,z=(Math.random()-.5)*190;
+  let ok=true;for(const h of HUTS){if(Math.hypot(x-h.pos[0],z-h.pos[1])<9){ok=false;break;}}
+  if(Math.hypot(x,z)<6)ok=false;
+  if(ok)tree(x,z,.8+Math.random()*.9);
+}
+// صخور وحشائش
+for(let i=0;i<40;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.3+Math.random()*.5),new THREE.MeshStandardMaterial({color:0x6a6a6a,roughness:1}));
+  r.position.set((Math.random()-.5)*170,.25,(Math.random()-.5)*170);r.castShadow=true;scene.add(r);}
+for(let i=0;i<200;i++){const g=new THREE.Mesh(new THREE.ConeGeometry(.09,.5,4),new THREE.MeshStandardMaterial({color:0x3f8a3a}));
+  g.position.set((Math.random()-.5)*160,.2,(Math.random()-.5)*160);scene.add(g);}
+
+// ======== بناء الأكواخ ========
+function woodMat(c=0x6b4a2e){return new THREE.MeshStandardMaterial({color:c,roughness:.95});}
+function makeTextSprite(text){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=128;
+  const x=cv.getContext('2d');x.fillStyle='rgba(0,0,0,.65)';x.fillRect(0,10,512,108);
+  x.strokeStyle='#ffd75e';x.lineWidth=4;x.strokeRect(4,14,504,100);
+  x.fillStyle='#ffd75e';x.font='bold 44px Tahoma,Arial';x.textAlign='center';x.textBaseline='middle';
+  x.fillText(text,256,66);
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false}));
+  s.scale.set(3.4,.85,1);return s;
+}
+function makeKeyMesh(){
+  const g=new THREE.Group();
+  const gold=new THREE.MeshStandardMaterial({color:0xffc93a,metalness:.85,roughness:.25,emissive:0x664400,emissiveIntensity:.35});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.11,.035,10,20),gold);ring.rotation.y=Math.PI/2;g.add(ring);
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.34,10),gold);rod.rotation.z=Math.PI/2;rod.position.x=.24;g.add(rod);
+  const t1=new THREE.Mesh(new THREE.BoxGeometry(.06,.1,.05),gold);t1.position.set(.36,-.06,0);g.add(t1);
+  const t2=new THREE.Mesh(new THREE.BoxGeometry(.06,.08,.05),gold);t2.position.set(.28,-.05,0);g.add(t2);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  const glow=new THREE.PointLight(0xffd75e,.9,3);glow.position.y=.3;g.add(glow);
+  return g;
+}
+const hutObjs=[]; // منطق اللعبة
+const interactables=[]; // {pos:Vector3, radius, type, hut}
+function buildHut(def){
+  const grp=new THREE.Group();grp.position.set(def.pos[0],0,def.pos[1]);grp.rotation.y=def.rot;scene.add(grp);
+  const W=4.4,D=3.8,H=2.5,TH=.18;
+  const wallM=woodMat(0x5e4128), darkM=woodMat(0x3e2c1c), floorM=new THREE.MeshStandardMaterial({color:0x4d3a26,roughness:1});
+  // أرضية + وسخ وتراب
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(W,.12,D),floorM);floor.position.y=.06;floor.receiveShadow=true;grp.add(floor);
+  for(let i=0;i<14;i++){ // بقع وسخ
+    const s=.25+Math.random()*.6;
+    const d=new THREE.Mesh(new THREE.CircleGeometry(s,10),new THREE.MeshStandardMaterial({color:Math.random()<.5?0x2e2114:0x6e5a3a,roughness:1,transparent:true,opacity:.8}));
+    d.rotation.x=-Math.PI/2;d.position.set((Math.random()-.5)*(W-1),.125,(Math.random()-.5)*(D-1));grp.add(d);
+  }
+  for(let i=0;i<7;i++){ // أوراق وقمامة
+    const l=new THREE.Mesh(new THREE.PlaneGeometry(.22,.3),new THREE.MeshStandardMaterial({color:[0x7a5a20,0x556b2f,0x777777][i%3],side:THREE.DoubleSide}));
+    l.rotation.x=-Math.PI/2;l.rotation.z=Math.random()*6;l.position.set((Math.random()-.5)*(W-1),.13,(Math.random()-.5)*(D-1));grp.add(l);
+  }
+  // جدران: أمامي فيه فتحة باب 1م
+  const doorW=1.05;
+  const sideL=new THREE.Mesh(new THREE.BoxGeometry((W-doorW)/2,H,TH),wallM);
+  sideL.position.set(-(doorW/2+(W-doorW)/4),H/2,D/2);sideL.castShadow=true;grp.add(sideL);
+  const sideR=sideL.clone();sideR.position.x=(doorW/2+(W-doorW)/4);grp.add(sideR);
+  const lintel=new THREE.Mesh(new THREE.BoxGeometry(doorW,.5,TH),wallM);lintel.position.set(0,H-.25,D/2);grp.add(lintel);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(W,H,TH),wallM);back.position.set(0,H/2,-D/2);back.castShadow=true;grp.add(back);
+  const left=new THREE.Mesh(new THREE.BoxGeometry(TH,H,D),wallM);left.position.set(-W/2,H/2,0);left.castShadow=true;grp.add(left);
+  const right=left.clone();right.position.x=W/2;grp.add(right);
+  // ألواح مكسورة عشوائية (مهجور)
+  for(let i=0;i<4;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(.3,H*.9,.06),darkM);
+    p.position.set((Math.random()-.5)*W,H/2,(Math.random()<.5?-1:1)*D/2+ (Math.random()-.5)*.15);
+    p.rotation.z=(Math.random()-.5)*.25;grp.add(p);}
+  // سقف مثلث
+  const roofM=new THREE.MeshStandardMaterial({color:0x33241a,roughness:1});
+  const r1=new THREE.Mesh(new THREE.BoxGeometry(W+.6,0.12,2.5),roofM);r1.position.set(0,H+.55,-.95);r1.rotation.x=.5;r1.castShadow=true;grp.add(r1);
+  const r2=new THREE.Mesh(new THREE.BoxGeometry(W+.6,0.12,2.5),roofM);r2.position.set(0,H+.55,.95);r2.rotation.x=-.5;r2.castShadow=true;grp.add(r2);
+  // شبكة عنكبوت شفافة
+  const web=new THREE.Mesh(new THREE.PlaneGeometry(.8,.8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.14,side:THREE.DoubleSide}));
+  web.position.set(W/2-.15,H-.5,-D/2+.15);web.rotation.y=-Math.PI/2;grp.add(web);
+  // الباب (محور)
+  const pivot=new THREE.Group();pivot.position.set(-doorW/2,0,D/2);grp.add(pivot);
+  const door=new THREE.Mesh(new THREE.BoxGeometry(doorW,H-.5,.09),new THREE.MeshStandardMaterial({color:0x7a5230,roughness:.9}));
+  door.position.set(doorW/2,(H-.5)/2+.05,0);door.castShadow=true;pivot.add(door);
+  // مقبض + قفل
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(.06,10,10),new THREE.MeshStandardMaterial({color:0x222222,metalness:.7,roughness:.4}));
+  knob.position.set(doorW-.15,1.1,.08);pivot.add(knob);
+  const lockBody=new THREE.Mesh(new THREE.BoxGeometry(.22,.28,.1),new THREE.MeshStandardMaterial({color:0x333333,metalness:.8,roughness:.3}));
+  lockBody.position.set(doorW-.15,1.35,.08);pivot.add(lockBody);
+  const shackle=new THREE.Mesh(new THREE.TorusGeometry(.08,.02,8,14,Math.PI),new THREE.MeshStandardMaterial({color:0xaaaaaa,metalness:.9,roughness:.2}));
+  shackle.position.set(doorW-.15,1.5,.08);pivot.add(shackle);
+  pivot.userData.lockMeshes=[lockBody,shackle];
+  if(def.open){lockBody.visible=false;shackle.visible=false;}
+  // لافتة اسم الكوخ فوق الباب
+  const sign=makeTextSprite(def.name);sign.position.set(0,H+.35,D/2+.6);grp.add(sign);
+  // لافتة القفل المطلوب
+  let needSign=null;
+  if(def.needKey){needSign=makeTextSprite('🔒 '+def.needKey);needSign.position.set(0,1.9,D/2+.6);needSign.scale.set(2.8,.7,1);grp.add(needSign);}
+  // تخت (سرير) قديم وسخ
+  const bed=new THREE.Group();bed.position.set(-W/2+.85,0,-D/2+.9);grp.add(bed);
+  const frameM=woodMat(0x4a3520);
+  const fb=new THREE.Mesh(new THREE.BoxGeometry(1.1,.18,2),frameM);fb.position.y=.35;fb.castShadow=true;bed.add(fb);
+  for(const [x,z] of [[-.45,-.9],[.45,-.9],[-.45,.9],[.45,.9]]){const leg=new THREE.Mesh(new THREE.BoxGeometry(.1,.35,.1),frameM);leg.position.set(x,.17,z);bed.add(leg);}
+  const mat=new THREE.Mesh(new THREE.BoxGeometry(1,.16,1.9),new THREE.MeshStandardMaterial({color:0x9a8f7a,roughness:1}));mat.position.y=.52;mat.rotation.z=.03;bed.add(mat);
+  const stain=new THREE.Mesh(new THREE.CircleGeometry(.28,10),new THREE.MeshStandardMaterial({color:0x5a4a30,transparent:true,opacity:.7}));stain.rotation.x=-Math.PI/2;stain.position.y=.61;bed.add(stain);
+  const pil=new THREE.Mesh(new THREE.BoxGeometry(.7,.13,.4),new THREE.MeshStandardMaterial({color:0xb0a890}));pil.position.set(0,.63,-.7);pil.rotation.z=.12;bed.add(pil);
+  const blanket=new THREE.Mesh(new THREE.BoxGeometry(1.02,.06,1),new THREE.MeshStandardMaterial({color:0x5a3a3a,roughness:1}));blanket.position.set(0,.62,.35);blanket.rotation.y=.06;bed.add(blanket);
+  // طاولة + مفتاح عليها
+  const table=new THREE.Group();table.position.set(W/2-.8,0,-D/2+1.1);grp.add(table);
+  const topM=new THREE.Mesh(new THREE.BoxGeometry(.95,.08,.95),woodMat(0x6e4f30));topM.position.y=.72;topM.castShadow=true;table.add(topM);
+  for(const [x,z] of [[-.4,-.4],[.4,-.4],[-.4,.4],[.4,.4]]){const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.72,.08),frameM);l.position.set(x,.36,z);table.add(l);}
+  // كرسي مكسور
+  const chair=new THREE.Mesh(new THREE.BoxGeometry(.4,.08,.4),frameM);chair.position.set(W/2-1.7,.45,.6);chair.rotation.y=.5;chair.rotation.z=.08;grp.add(chair);
+  // غبار عائم داخل الكوخ
+  const dustG=new THREE.BufferGeometry();const N=40;const pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*W;pos[i*3+1]=.3+Math.random()*2;pos[i*3+2]=(Math.random()-.5)*D;}
+  dustG.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const dust=new THREE.Points(dustG,new THREE.PointsMaterial({color:0xffe9a0,size:.035,transparent:true,opacity:.6}));
+  grp.add(dust);
+  // المفتاح / الكنز
+  let keyMesh=null,keyLabel=null;
+  if(def.gives){
+    if(def.gives.includes('الكنز')){
+      keyMesh=new THREE.Mesh(new THREE.BoxGeometry(.6,.45,.6),new THREE.MeshStandardMaterial({color:0x8a6a20,metalness:.8,roughness:.3,emissive:0xaa7700,emissiveIntensity:.4}));
+      keyMesh.position.set(0,.35,0);
+      const lid=new THREE.Mesh(new THREE.BoxGeometry(.6,.15,.6),new THREE.MeshStandardMaterial({color:0x6a4e15,metalness:.7,roughness:.4}));
+      lid.position.y=.3;keyMesh.add(lid);
+      keyLabel=makeTextSprite('👑 الكنز!');
+    }else{
+      keyMesh=makeKeyMesh();keyMesh.position.set(0,.12,0);
+      keyLabel=makeTextSprite(def.gives);
+    }
+    table.add(keyMesh);keyMesh.position.y=.86;
+    keyLabel.position.set(0,1.5,0);keyLabel.scale.set(2.6,.65,1);table.add(keyLabel);
+  }
+  // إضاءة خافتة داخل الكوخ
+  const lamp=new THREE.PointLight(0xffd9a0,.7,7);lamp.position.set(0,2.1,0);grp.add(lamp);
+  scene.updateMatrixWorld(true);
+  const doorWorld=new THREE.Vector3();pivot.getWorldPosition(doorWorld);
+  const tableWorld=new THREE.Vector3();table.getWorldPosition(tableWorld);
+  const hut={def,grp,pivot,dust,locked:!def.open,doorOpen:false,doorAngle:0,keyTaken:false,keyMesh,keyLabel,doorWorld,tableWorld,needSign};
+  hutObjs.push(hut);
+  interactables.push({hut,type:'door'});
+  if(def.gives)interactables.push({hut,type:'table'});
+  // حواجز الجدران (تقريبية)
+  colliders.push({hut,wall:true});
+  return hut;
+}
+HUTS.forEach(buildHut);
+// فوانيس خارجية + نار مخيم بالوسط
+for(const h of hutObjs){
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,2.4,6),woodMat(0x222222));
+  const wp=h.doorWorld.clone();p.position.set(wp.x+1.4,1.2,wp.z+1.2);p.castShadow=true;scene.add(p);
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,10),new THREE.MeshBasicMaterial({color:0xffd75e}));
+  bulb.position.set(p.position.x,2.35,p.position.z);scene.add(bulb);
+  const li=new THREE.PointLight(0xffb84a,1.2,9);li.position.copy(bulb.position);scene.add(li);
+  colliders.push({x:p.position.x,z:p.position.z,r:.3});
+}
+{ // نار
+  const logs=new THREE.Group();logs.position.set(0,0,0);scene.add(logs);
+  for(let i=0;i<4;i++){const l=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,1.2,6),trunkMat);l.rotation.z=Math.PI/2;l.rotation.y=i*.8;l.position.y=.12;logs.add(l);}
+  const fire=new THREE.Mesh(new THREE.ConeGeometry(.45,1,8),new THREE.MeshBasicMaterial({color:0xff7722,transparent:true,opacity:.9}));fire.position.y=.7;logs.add(fire);
+  const fl=new THREE.PointLight(0xff7722,2,14);fl.position.y=1;logs.add(fl);logs.userData.fire=fire;logs.userData.fl=fl;
+  window._camp=logs;
+}
+
+// ======== اللاعب والتحكم (جوال + كمبيوتر) ========
+const player={pos:new THREE.Vector3(0,1.65,6),yaw:0.73,vx:0,vz:0,vy:0,ground:1.65,pitch:-0.02};
+camera.position.copy(player.pos);
+let keysDown={};
+addEventListener('keydown',e=>{keysDown[e.code]=true;if(e.code==='KeyE')doInteract();if(e.code==='Space')jump();});
+addEventListener('keyup',e=>{keysDown[e.code]=false;});
+function jump(){if(Math.abs(player.pos.y-player.ground)<.1)player.vy=4;}
+// جويستيك
+const joy=document.getElementById('joy'),stick=document.getElementById('stick');
+let jx=0,jy=0,joyId=null;
+function joyPos(e){const r=joy.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let dx=e.clientX-cx,dy=e.clientY-cy;const m=Math.hypot(dx,dy),max=40;if(m>max){dx*=max/m;dy*=max/m;}
+  stick.style.transform=`translate(${dx}px,${dy}px)`;jx=dx/max;jy=dy/max;}
+joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(e.pointerId);joyPos(e);});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyPos(e);});
+addEventListener('pointerup',e=>{if(e.pointerId===joyId){joyId=null;jx=jy=0;stick.style.transform='';}});
+// نظر باللمس (يمين الشاشة)
+let lookId=null,lx=0,ly=0;
+addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.4&&e.target===canvas){lookId=e.pointerId;lx=e.clientX;ly=e.clientY;}});
+addEventListener('pointermove',e=>{if(e.pointerId===lookId){player.yaw-=(e.clientX-lx)*.006;
+  player.pitch=(player.pitch||0)-(e.clientY-ly)*.004;player.pitch=Math.max(-1.2,Math.min(1.2,player.pitch));lx=e.clientX;ly=e.clientY;}});
+addEventListener('pointerup',e=>{if(e.pointerId===lookId)lookId=null;});
+// ماوس للكمبيوتر
+let dragging=false,px=0,py=0;
+canvas.addEventListener('mousedown',e=>{dragging=true;px=e.clientX;py=e.clientY;});
+addEventListener('mousemove',e=>{if(dragging){player.yaw-=(e.clientX-px)*.005;player.pitch=(player.pitch||0)-(e.clientY-py)*.004;
+  player.pitch=Math.max(-1.2,Math.min(1.2,player.pitch));px=e.clientX;py=e.clientY;}});
+addEventListener('mouseup',()=>dragging=false);
+document.getElementById('btnAct').addEventListener('click',doInteract);
+document.getElementById('btnJump').addEventListener('click',jump);
+
+// ======== منطق اللعبة: مفاتيح بأسماء ========
+const inv=[]; // أسماء المفاتيح
+const klist=document.getElementById('klist'),kc=document.getElementById('kc');
+const msg=document.getElementById('msg'),tip=document.getElementById('interactTip'),toast=document.getElementById('toast');
+const lockUI=document.getElementById('lock'),lockTxt=document.getElementById('lockTxt');
+let msgT=null;
+function showMsg(t,ms=2600){msg.textContent=t;msg.style.display='block';clearTimeout(msgT);msgT=setTimeout(()=>msg.style.display='none',ms);}
+function showToast(t){toast.textContent=t;toast.style.display='block';setTimeout(()=>toast.style.display='none',1800);}
+function refreshInv(){kc.textContent=inv.length;
+  klist.innerHTML=inv.length?inv.map(k=>`<div class="k"><span class="dot"></span><span>${k}</span></div>`).join(''):'<div style="opacity:.6">لا تملك مفاتيح بعد</div>';}
+function hutDoorPos(h){return h.doorWorld;}
+function near(pos,r){return player.pos.distanceTo(new THREE.Vector3(pos.x,player.pos.y,pos.z))<r;}
+let focus=null; // {hut,type}
+function updateFocus(){
+  focus=null;let best=3.2;
+  for(const h of hutObjs){
+    const dD=Math.hypot(player.pos.x-h.doorWorld.x,player.pos.z-h.doorWorld.z);
+    if(dD<best){best=dD;focus={hut:h,type:'door'};}
+    if(h.keyMesh&&!h.keyTaken){
+      const dT=Math.hypot(player.pos.x-h.tableWorld.x,player.pos.z-h.tableWorld.z);
+      if(dT<2.6&&dT<best){best=dT;focus={hut:h,type:'table'};}
+    }
+  }
+  if(focus){
+    tip.style.display='block';
+    if(focus.type==='door'){
+      const h=focus.hut;
+      if(h.locked)tip.textContent=`🔒 ${h.def.name} مقفل — اضغط تفاعل`;
+      else if(!h.doorOpen)tip.textContent=`🚪 افتح باب ${h.def.name}`;
+      else tip.textContent=`🚪 أغلق باب ${h.def.name}`;
+    }else{
+      const h=focus.hut;
+      tip.textContent=h.def.gives.includes('الكنز')?'👑 خذ الكنز!':'🗝️ خذ '+h.def.gives;
+    }
+  }else tip.style.display='none';
+}
+function doInteract(){
+  if(!focus){showMsg('🚶 اقترب من باب أو طاولة داخل كوخ');return;}
+  const h=focus.hut;
+  if(focus.type==='door'){
+    if(h.locked){
+      lockTxt.innerHTML=`<b>${h.def.name}</b> مقفل بقفل!<br>يحتاج: <b style="color:gold">${h.def.needKey}</b><br><span style="font-size:12px;opacity:.8">مفاتيحك: ${inv.length?inv.join('، '):'لا يوجد'}</span>`;
+      lockUI.style.display='block';
+    }else{
+      h.doorOpen=!h.doorOpen;
+      showMsg(h.doorOpen?`🚪 فُتح ${h.def.name} — ادخل!`:`🚪 أُغلق ${h.def.name}`);
+    }
+  }else{
+    if(h.locked){showMsg(`🔒 الباب مقفل! فك قفل ${h.def.name} أولاً بـ (${h.def.needKey})`);return;}
+    if(!h.doorOpen&&h.def.id!=='hattab'){/* اسمح بالالتقاط حتى لو الباب مغلق جزئياً */}
+    if(h.keyTaken)return;
+    h.keyTaken=true;
+    if(h.keyMesh){h.keyMesh.visible=false;}if(h.keyLabel){h.keyLabel.visible=false;}
+    if(h.def.gives.includes('الكنز')){winGame();}
+    else{inv.push(h.def.gives);refreshInv();showToast('✅ أخذت '+h.def.gives);showMsg(`🗝️ حصلت على <b>${h.def.gives}</b> — نفس لون باقي المفاتيح لكن الاسم مختلف! توجه للكوخ التالي`);}
+  }
+}
+document.getElementById('btnUnlock').onclick=()=>{
+  const h=focus?.hut;if(!h||focus.type!=='door')return;
+  if(inv.includes(h.def.needKey)){
+    h.locked=false;
+    h.pivot.userData.lockMeshes.forEach(m=>m.visible=false);
+    if(h.needSign)h.needSign.visible=false;
+    h.doorOpen=true;
+    lockUI.style.display='none';
+    showMsg(`🔓 انفتح قفل ${h.def.name} بـ (${h.def.needKey})! ادخل وخذ المفتاح من الطاولة`);
+  }else{
+    showMsg(`❌ تحتاج (${h.def.needKey}) — ابحث عنه في الكوخ السابق!`);
+  }
+};
+document.getElementById('btnClose').onclick=()=>lockUI.style.display='none';
+function winGame(){
+  showMsg('👑 مبروك! وجدت كنز الغابة! خلصت كل الأكواخ 🏆',6000);
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:20px';
+  d.innerHTML=`<div style="background:#122a18;border:2px solid gold;border-radius:16px;padding:24px;max-width:420px;text-align:center;color:#fff">
+    <h2 style="color:gold">🏆 فزت!</h2><p style="margin:10px 0;line-height:1.9">فتحت كل الأكواخ المهجورة:<br>كوخ الحطّاب → الصيّاد → العجوز → البومة<br>وجمعت كل المفاتيح المسماة!</p>
+    <button id="again" style="background:gold;border:none;padding:12px 20px;border-radius:10px;font-weight:900">🔄 العب مجدداً</button></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#again').onclick=()=>location.reload();
+}
+
+// تصادم بسيط: أشجار + جدران الأكواخ
+function collide(nx,nz){
+  for(const c of colliders){
+    if(c.wall)continue;
+    if(Math.hypot(nx-c.x,nz-c.z)<c.r+.45)return true;
+  }
+  for(const h of hutObjs){
+    // حوّل لإحداثيات الكوخ المحلية
+    const dx=nx-h.grp.position.x,dz=nz-h.grp.position.z;
+    const a=-h.grp.rotation.y, lx=dx*Math.cos(a)-dz*Math.sin(a), lz=dx*Math.sin(a)+dz*Math.cos(a);
+    const W=4.4,D=3.8;
+    if(Math.abs(lx)<W/2+.35&&Math.abs(lz)<D/2+.35){
+      const inDoor=Math.abs(lx)<.55&&lz>D/2-.6&&lz<D/2+.6;
+      if(inDoor){ if(!h.doorOpen)return true; else continue; }
+      const nearWall=Math.abs(Math.abs(lx)-W/2)<.45||Math.abs(Math.abs(lz)-D/2)<.45;
+      if(nearWall)return true;
+      // داخل الكوخ: امنع الخروج عبر الجدار + امنع المرور عبر الطاولة والسرير
+      if(Math.abs(lx)<W/2&&Math.abs(lz)<D/2){
+        const bedL={x:-W/2+.85,z:-D/2+.9},tabL={x:W/2-.8,z:-D/2+1.1};
+        if(Math.hypot(lx-bedL.x,lz-bedL.z)<1.1)return true;
+        if(Math.hypot(lx-tabL.x,lz-tabL.z)<.8)return true;
+      }
+    }
+  }
+  if(Math.abs(nx)>100||Math.abs(nz)>100)return true;
+  return false;
+}
+
+// حلقة اللعب
+const clock=new THREE.Clock();
+function tick(){
+  requestAnimationFrame(tick);
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  // حركة
+  let mx=jx,mz=-jy;
+  if(keysDown['KeyW']||keysDown['ArrowUp'])mz+=1;
+  if(keysDown['KeyS']||keysDown['ArrowDown'])mz-=1;
+  if(keysDown['KeyA']||keysDown['ArrowLeft'])mx-=1;
+  if(keysDown['KeyD']||keysDown['ArrowRight'])mx+=1;
+  const sp=5*dt, sy=Math.sin(player.yaw),cy=Math.cos(player.yaw);
+  let nx=player.pos.x+(mx*cy-mz*sy)*sp*-1, nz=player.pos.z+(-mx*sy-mz*cy)*sp*-1;
+  // تصحيح الاتجاه (عصا يمين = أمام)
+  nx=player.pos.x;nz=player.pos.z;
+  const fwd=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
+  const right=new THREE.Vector3(-fwd.z,0,fwd.x);
+  nx=player.pos.x+(right.x*mx+fwd.x*mz)*5*dt;
+  nz=player.pos.z+(right.z*mx+fwd.z*mz)*5*dt;
+  if(!collide(nx,player.pos.z))player.pos.x=nx;
+  if(!collide(player.pos.x,nz))player.pos.z=nz;
+  player.vy-=12*dt;player.pos.y+=player.vy*dt;
+  if(player.pos.y<player.ground){player.pos.y=player.ground;player.vy=0;}
+  camera.position.copy(player.pos);
+  camera.rotation.set(0,0,0);camera.rotateY(player.yaw);camera.rotateX(player.pitch||0);
+  // أبواب
+  for(const h of hutObjs){
+    const target=h.doorOpen?-1.9:0;
+    h.doorAngle+=(target-h.doorAngle)*Math.min(1,dt*4);
+    h.pivot.rotation.y=h.doorAngle;
+    if(h.keyMesh&&!h.keyTaken){h.keyMesh.rotation.y+=dt*1.5;h.keyMesh.position.y=.86+Math.sin(t*2+h.grp.position.x)*.05;}
+    if(h.dust){h.dust.rotation.y+=dt*.05;}
+  }
+  if(window._camp){window._camp.userData.fire.scale.setScalar(1+Math.sin(t*9)*.12);window._camp.userData.fl.intensity=1.7+Math.sin(t*9)*.4;}
+  updateFocus();
+  renderer.render(scene,camera);
+}
+tick();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+document.getElementById('play').onclick=()=>{
+  document.getElementById('start').style.display='none';
+  showMsg('🏚️ ادخل كوخ الحطّاب المفتوح وخذ المفتاح من الطاولة!',3500);
+refreshInv();
+window.__game={player,hutObjs,inv,doInteract,camera,scene};
+};
+refreshInv();
+</script>
+</body>
+</html>
